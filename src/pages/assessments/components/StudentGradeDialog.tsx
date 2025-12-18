@@ -1,4 +1,3 @@
-// src/pages/assessments/components/StudentGradeDialog.tsx
 // Editor por aluno: navegação por TAB/⇦⇨ e envio incremental (create/update/delete)
 import React from "react";
 import {
@@ -19,6 +18,7 @@ import {
     TableBody,
     Typography,
     Alert,
+    CircularProgress,
 } from "@mui/material";
 import type { MatrixQuestion } from "../../../types/assessments";
 import { getStudentAssessmentResults, createStudentAnswer, updateStudentAnswer, deleteStudentAnswer } from "../../../api/studentAnswers";
@@ -38,6 +38,21 @@ export default function StudentGradeDialog({ open, assessment, questions, studen
     const [err, setErr] = React.useState<string | null>(null);
     const [submitting, setSubmitting] = React.useState(false);
 
+    async function resolveAnswerId(assessmentId: number, studentId: number, questionId: number): Promise<number | undefined> {
+        const res = await getStudentAssessmentResults(studentId, assessmentId);
+        // aceita tanto answers (atual) quanto responses (legado)
+        const list = ((res as any).answers ?? (res as any).responses ?? []) as Array<{
+            answer_id?: number;
+            id?: number; // legado
+            question_id: number;
+        }>;
+        const hit = list.find((a) => a.question_id === questionId);
+        if (!hit) return undefined;
+        if (typeof hit.answer_id === "number") return hit.answer_id;
+        if (typeof (hit as any).id === "number") return (hit as any).id; // compatibilidade com versões antigas
+        return undefined;
+    }
+
     React.useEffect(() => {
         if (!open) {
             setStudentId("");
@@ -53,11 +68,21 @@ export default function StudentGradeDialog({ open, assessment, questions, studen
             if (!open || !assessment?.id || !studentId) return;
             setErr(null);
             const res = await getStudentAssessmentResults(Number(studentId), assessment.id);
-            const list = (res.answers || res.responses || []) as Array<{ id: number; question_id: number; marked_option: AnswerOption }>;
+
+            // aceita tanto answers (atual) quanto responses (legado)
+            const list = (((res as any).answers ?? (res as any).responses) || []) as Array<{
+                answer_id?: number;
+                id?: number; // legado
+                question_id: number;
+                marked_option: AnswerOption;
+            }>;
+
             if (cancel) return;
             const next: Record<number, { answerId?: number; marked?: AnswerOption }> = {};
             list.forEach((a) => {
-                next[a.question_id] = { answerId: a.id, marked: a.marked_option };
+                const aid = typeof a.answer_id === "number" ? a.answer_id : (a as any).id;
+                if (aid) next[a.question_id] = { answerId: aid, marked: a.marked_option };
+                else next[a.question_id] = { marked: a.marked_option };
             });
             setTable(next);
         }
@@ -76,21 +101,45 @@ export default function StudentGradeDialog({ open, assessment, questions, studen
         if (!assessment?.id || !studentId) return;
         setSubmitting(true);
         setErr(null);
+
         try {
-            // Envia cada alteração individualmente (garante create/update/delete corretos)
             for (const q of questions) {
-                const cell = table[q.id];
+                const cell = table[q.id]; // { answerId?, marked? }
+
+                // Caso 1: “—” (sem resposta) ⇒ DELETE se houver resposta existente
                 if (!cell || typeof cell.marked === "undefined") {
-                    // se havia uma resposta e agora ficou vazio → DELETE
-                    if (cell?.answerId) await deleteStudentAnswer(cell.answerId);
+                    const id = cell?.answerId ?? (await resolveAnswerId(assessment.id, Number(studentId), q.id));
+                    if (id) await deleteStudentAnswer(id);
                     continue;
                 }
+
+                // Caso 2: Já temos id ⇒ PUT
                 if (cell.answerId) {
                     await updateStudentAnswer(cell.answerId, { marked_option: cell.marked });
-                } else {
-                    await createStudentAnswer({ student_id: Number(studentId), question_id: q.id, marked_option: cell.marked });
+                    continue;
+                }
+
+                // Caso 3: Não temos id ⇒ tenta POST, se 409 faz PUT com id resolvido
+                try {
+                    await createStudentAnswer({
+                        student_id: Number(studentId),
+                        question_id: q.id,
+                        marked_option: cell.marked,
+                    });
+                } catch (e: any) {
+                    if (e?.response?.status === 409) {
+                        const existingId = await resolveAnswerId(assessment.id, Number(studentId), q.id);
+                        if (existingId) {
+                            await updateStudentAnswer(existingId, { marked_option: cell.marked });
+                            // atualiza cache local, opcional
+                            setTable((prev) => ({ ...prev, [q.id]: { answerId: existingId, marked: cell.marked } }));
+                        }
+                    } else {
+                        throw e;
+                    }
                 }
             }
+
             onClose(true);
         } catch (e: any) {
             setErr(e?.response?.data?.message || "Erro ao salvar respostas do aluno.");
@@ -144,6 +193,7 @@ export default function StudentGradeDialog({ open, assessment, questions, studen
                                                 value={table[q.id]?.marked?.toUpperCase() || "-"}
                                                 onChange={(e) => setMark(q.id, e.target.value)}
                                                 style={{ fontWeight: 700, padding: 6, minWidth: 120 }}
+                                                disabled={submitting}
                                             >
                                                 <option value="-">—</option>
                                                 <option value="A">A</option>
@@ -163,9 +213,16 @@ export default function StudentGradeDialog({ open, assessment, questions, studen
                 </Stack>
             </DialogContent>
             <DialogActions>
-                <Button onClick={() => onClose(false)}>Cancelar</Button>
-                <Button variant="contained" disabled={!studentId || submitting} onClick={handleSave}>
-                    Salvar
+                <Button onClick={() => onClose(false)} disabled={submitting}>
+                    Cancelar
+                </Button>
+                <Button
+                    variant="contained"
+                    disabled={!studentId || submitting}
+                    onClick={handleSave}
+                    startIcon={submitting ? <CircularProgress size={16} /> : undefined}
+                >
+                    {submitting ? "Salvando…" : "Salvar"}
                 </Button>
             </DialogActions>
         </Dialog>

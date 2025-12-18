@@ -1,6 +1,6 @@
 // src/api/studentAnswers.ts
 import api from "./http";
-import type { StudentAnswerCreate, StudentAnswerOut, StudentAnswerUpdate, StudentAssessmentResults } from "../types/studentAnswers";
+import type { StudentAnswerCreate, StudentAnswerOut, StudentAnswerUpdate, StudentAssessmentResultsOut } from "../types/studentAnswers";
 
 // CRUD simples
 export async function createStudentAnswer(payload: StudentAnswerCreate) {
@@ -23,7 +23,7 @@ export async function bulkCreateStudentAnswers(items: StudentAnswerCreate[]) {
 
 // Resultado do aluno na avaliação (para mapear answer_id por question_id)
 export async function getStudentAssessmentResults(studentId: number, assessmentId: number) {
-    const { data } = await api.get<StudentAssessmentResults>(`/students/${studentId}/assessments/${assessmentId}/results`);
+    const { data } = await api.get<StudentAssessmentResultsOut>(`/students/${studentId}/assessments/${assessmentId}/results`);
     return data;
 }
 

@@ -473,7 +473,7 @@ export default function AssessmentQuestions() {
                                                             <Chip
                                                                 size="small"
                                                                 color={skillChipColor(q.skill_level)}
-                                                                variant="outlined"
+                                                                variant="filled"
                                                                 label={SKILL_LABEL[q.skill_level]}
                                                             />
                                                         </TableCell>

@@ -18,6 +18,7 @@ import AssessmentOverview from "../pages/assessments/tabs/AssessmentOverview";
 import AssessmentMatrix from "../pages/assessments/tabs/AssessmentMatrix";
 import AssessmentWeights from "../pages/assessments/tabs/AssessmentWeights";
 import AssessmentQuestions from "../pages/assessments/tabs/AssessmentQuestions";
+import AssessmentGradingPolicyTab from "../pages/assessments/tabs/AssessmentGradingPolicyTab.tsx";
 
 const router = createBrowserRouter([
     { path: "/login", element: <Login /> },
@@ -50,6 +51,7 @@ const router = createBrowserRouter([
                             { path: "matrix", element: <AssessmentMatrix /> },
                             { path: "weights", element: <AssessmentWeights /> },
                             { path: "questions", element: <AssessmentQuestions /> },
+                            { path: "grading-policy", element: <AssessmentGradingPolicyTab />}
                         ],
                     },
                 ],

@@ -8,6 +8,8 @@ import type {
     AssessmentOverviewDTO,
     AssessmentSkillWeightsIn,
     AssessmentSkillWeightsOut,
+    AssessmentGradingPolicyIn,
+    AssessmentGradingPolicyOut,
 } from "../types/assessments";
 
 export async function listAssessments(xFields?: string) {
@@ -66,4 +68,18 @@ export async function getAssessmentSkillWeights(id: number) {
 export async function putAssessmentSkillWeights(id: number, payload: AssessmentSkillWeightsIn) {
     const res = await api.put<AssessmentSkillWeightsOut>(`/assessments/${id}/skills-weights`, payload);
     return res.data;
+}
+
+export async function getAssessmentGradingPolicy(assessmentId: number, xFields?: string) {
+    const headers: Record<string, string> = {};
+    if (xFields) headers["X-Fields"] = xFields;
+    const { data } = await api.get<AssessmentGradingPolicyOut>(`/assessments/${assessmentId}/grading-policy`, { headers });
+    return data;
+}
+
+export async function putAssessmentGradingPolicy(assessmentId: number, payload: AssessmentGradingPolicyIn, xFields?: string) {
+    const headers: Record<string, string> = {};
+    if (xFields) headers["X-Fields"] = xFields;
+    const { data } = await api.put<AssessmentGradingPolicyOut>(`/assessments/${assessmentId}/grading-policy`, payload, { headers });
+    return data;
 }

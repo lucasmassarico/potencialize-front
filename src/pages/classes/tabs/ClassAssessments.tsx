@@ -29,6 +29,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import ReplayIcon from "@mui/icons-material/Replay";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import dayjs from "../../../lib/dayjs";
 import { listAssessments, deleteAssessment } from "../../../api/assessments";
 import type { AssessmentOut } from "../../../types/assessments";
@@ -38,7 +39,7 @@ import AssessmentFormDialog from "../components/AssessmentFormDialog";
 import { TableSkeleton } from "../../../components/Skeletons";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 
-/** Helpers para label/cor do chip */
+/** Helpers para label/cor */
 function weightLabel(mode: AssessmentOut["weight_mode"]) {
     switch (mode) {
         case "fixed_all":
@@ -62,7 +63,27 @@ function weightChipColor(mode: AssessmentOut["weight_mode"]): "default" | "info"
     }
 }
 
-/** Card clicável (mobile/tablet) no mesmo padrão dos cards de Turmas */
+function subjectLabel(kind?: string, other?: string | null) {
+    const map: Record<string, string> = {
+        portugues: "Português",
+        matematica: "Matemática",
+        ciencias: "Ciências",
+        historia: "História",
+        geografia: "Geografia",
+        ingles: "Inglês",
+        artes: "Artes",
+        educacao_fisica: "Educação Física",
+        tecnologia: "Tecnologia",
+        redacao: "Redação",
+        geral: "Geral",
+        outro: "Outro",
+    };
+    if (!kind) return "—";
+    if (kind === "outro") return (other || "").trim() || "Outro";
+    return map[kind] ?? String(kind);
+}
+
+/** Card clicável (mobile/tablet) */
 function AssessmentCard({ a, onEdit, onDelete }: { a: AssessmentOut; onEdit: (a: AssessmentOut) => void; onDelete: (a: AssessmentOut) => void }) {
     const nav = useNavigate();
     const dateLabel = dayjs(a.date).format("DD/MM/YYYY HH:mm");
@@ -71,27 +92,26 @@ function AssessmentCard({ a, onEdit, onDelete }: { a: AssessmentOut; onEdit: (a:
         <Card variant="outlined" sx={{ height: "100%" }}>
             <CardActionArea
                 onClick={() => nav(`/assessments/${a.id}`)}
-                sx={{
-                    p: 2,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 2,
-                }}
+                sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}
                 aria-label={`Abrir avaliação ${a.title}`}
             >
                 <Box sx={{ minWidth: 0 }}>
                     <Typography fontWeight={700} noWrap title={a.title}>
                         {a.title}
                     </Typography>
-                    <Stack direction="row" spacing={1} mt={0.5} sx={{ alignItems: "center" }}>
+                    <Stack direction="row" spacing={1} mt={0.5} sx={{ alignItems: "center", flexWrap: "wrap" }}>
                         <Chip size="small" label={dateLabel} />
                         <Chip size="small" variant="outlined" color={weightChipColor(a.weight_mode)} label={weightLabel(a.weight_mode)} />
+                        <Chip
+                            size="small"
+                            variant="outlined"
+                            icon={<MenuBookOutlinedIcon />}
+                            label={subjectLabel((a as any).subject_kind, (a as any).subject_other)}
+                        />
                     </Stack>
                 </Box>
 
                 <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
-                    {/* Ações rápidas sem abrir o card */}
                     <IconButton
                         aria-label="editar avaliação"
                         onClick={(e) => {
@@ -117,7 +137,7 @@ function AssessmentCard({ a, onEdit, onDelete }: { a: AssessmentOut; onEdit: (a:
     );
 }
 
-/** Skeleton de cards (mobile) no mesmo espírito do de Turmas */
+/** Skeleton de cards (mobile) */
 function CardsSkeleton() {
     return (
         <Grid container spacing={2}>
@@ -129,6 +149,7 @@ function CardsSkeleton() {
                             <Stack direction="row" spacing={1} mt={1}>
                                 <Skeleton variant="rounded" width={120} height={24} />
                                 <Skeleton variant="rounded" width={110} height={24} />
+                                <Skeleton variant="rounded" width={150} height={24} />
                             </Stack>
                         </CardContent>
                     </Card>
@@ -144,9 +165,10 @@ export default function ClassAssessments() {
     const nav = useNavigate();
     const isMdUp = useMediaQuery("(min-width:900px)");
 
+    // Inclui subject_kind/subject_other nos X-Fields
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: ["assessments"],
-        queryFn: () => listAssessments("id,title,date,weight_mode,class_id"),
+        queryFn: () => listAssessments("id,title,date,weight_mode,class_id,subject_kind,subject_other"),
         staleTime: 30_000,
     });
 
@@ -191,7 +213,7 @@ export default function ClassAssessments() {
 
             <Card>
                 <CardContent>
-                    {isLoading && (isMdUp ? <TableSkeleton headers={["Título", "Data", "Peso", "Ações"]} rows={5} /> : <CardsSkeleton />)}
+                    {isLoading && (isMdUp ? <TableSkeleton headers={["Título", "Data", "Peso", "Disciplina", "Ações"]} rows={5} /> : <CardsSkeleton />)}
 
                     {isError && (
                         <Alert
@@ -228,7 +250,7 @@ export default function ClassAssessments() {
 
                     {!isLoading && !isError && list.length > 0 && (
                         <>
-                            {/* Mobile / Tablet: Cards clicáveis */}
+                            {/* Mobile / Tablet: Cards */}
                             <Box sx={{ display: { xs: "block", md: "none" } }}>
                                 <Grid container spacing={2}>
                                     {list.map((a) => (
@@ -249,7 +271,7 @@ export default function ClassAssessments() {
                                 </Grid>
                             </Box>
 
-                            {/* Desktop: Tabela com cues de clique (igual ao padrão de Turmas) */}
+                            {/* Desktop: Tabela */}
                             <Box sx={{ display: { xs: "none", md: "block" } }}>
                                 <TableContainer>
                                     <Table size="small" aria-label="Lista de avaliações da turma">
@@ -258,6 +280,7 @@ export default function ClassAssessments() {
                                                 <TableCell>Título</TableCell>
                                                 <TableCell width={180}>Data</TableCell>
                                                 <TableCell width={160}>Peso</TableCell>
+                                                <TableCell width={220}>Disciplina</TableCell>
                                                 <TableCell align="right" width={120}>
                                                     Ações
                                                 </TableCell>
@@ -299,7 +322,7 @@ export default function ClassAssessments() {
                                                             component={RouterLink}
                                                             to={`/assessments/${a.id}`}
                                                             color="inherit"
-                                                            underline="none" // ← remove sublinhado
+                                                            underline="none"
                                                             onClick={(e) => e.stopPropagation()}
                                                             aria-label={`Abrir avaliação ${a.title}`}
                                                             sx={{
@@ -307,10 +330,10 @@ export default function ClassAssessments() {
                                                                 display: "inline-flex",
                                                                 alignItems: "center",
                                                                 gap: 0.5,
-                                                                textDecoration: "none !important", // ← garante contra overrides do tema
+                                                                textDecoration: "none !important",
                                                                 "&:hover": { textDecoration: "none" },
                                                                 "&:focus-visible": { textDecoration: "none" },
-                                                                cursor: "inherit", // ← deixa cursor da linha prevalecer
+                                                                cursor: "inherit",
                                                             }}
                                                         >
                                                             {a.title}
@@ -319,17 +342,14 @@ export default function ClassAssessments() {
                                                         <ChevronRightIcon
                                                             fontSize="small"
                                                             className="row-chevron"
-                                                            sx={{
-                                                                ml: 0.5,
-                                                                opacity: 0,
-                                                                transform: "translateX(-4px)",
-                                                                transition: "all .15s ease",
-                                                            }}
+                                                            sx={{ ml: 0.5, opacity: 0, transform: "translateX(-4px)", transition: "all .15s ease" }}
                                                         />
                                                     </TableCell>
+
                                                     <TableCell>
                                                         <time dateTime={dayjs(a.date).toISOString()}>{dayjs(a.date).format("DD/MM/YYYY HH:mm")}</time>
                                                     </TableCell>
+
                                                     <TableCell>
                                                         <Chip
                                                             size="small"
@@ -340,6 +360,17 @@ export default function ClassAssessments() {
                                                             onClick={(e) => e.stopPropagation()}
                                                         />
                                                     </TableCell>
+
+                                                    <TableCell>
+                                                        <Chip
+                                                            size="small"
+                                                            variant="outlined"
+                                                            icon={<MenuBookOutlinedIcon />}
+                                                            label={subjectLabel((a as any).subject_kind, (a as any).subject_other)}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        />
+                                                    </TableCell>
+
                                                     <TableCell align="right">
                                                         <IconButton
                                                             aria-label="editar"

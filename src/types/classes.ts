@@ -1,3 +1,4 @@
+//src/types/classes.ts
 export interface TeacherRef {
     id: number;
     name: string;

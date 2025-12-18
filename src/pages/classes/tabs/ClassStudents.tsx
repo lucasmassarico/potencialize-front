@@ -52,10 +52,25 @@ function useDebounced<T>(value: T, delay = 220) {
 
 /** Card clicável para mobile (abre edição do aluno) */
 function StudentCard({ s, onEdit, onDelete }: { s: StudentOut; onEdit: (s: StudentOut) => void; onDelete: (s: StudentOut) => void }) {
+    const handleOpen = () => {
+        onEdit(s);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleOpen();
+        }
+    };
+
     return (
         <Card variant="outlined" sx={{ height: "100%" }}>
             <CardActionArea
-                onClick={() => onEdit(s)}
+                component="div" // <-- deixa de ser <button>, vira <div>
+                role="button"
+                tabIndex={0}
+                onClick={handleOpen}
+                onKeyDown={handleKeyDown}
                 sx={{
                     p: 2,
                     display: "flex",

@@ -6,11 +6,12 @@ import ReplayIcon from "@mui/icons-material/Replay";
 import EventIcon from "@mui/icons-material/Event";
 import ClassIcon from "@mui/icons-material/Class";
 import ScaleIcon from "@mui/icons-material/Scale";
+import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 
 import { getAssessment } from "../../api/assessments";
 import { getClass } from "../../api/classes";
 import AssessmentSubnav from "./components/AssessmentSubnav";
-import { toTitleCase } from "../../utils/utils";
+import ClassSubnav from "../classes/components/ClassSubnav";
 import dayjs from "../../lib/dayjs";
 
 function weightLabel(mode?: string) {
@@ -36,11 +37,31 @@ function weightChipColor(mode?: string): "default" | "info" | "secondary" {
     }
 }
 
+function subjectLabel(kind?: string, other?: string | null) {
+    const map: Record<string, string> = {
+        portugues: "Português",
+        matematica: "Matemática",
+        ciencias: "Ciências",
+        historia: "História",
+        geografia: "Geografia",
+        ingles: "Inglês",
+        artes: "Artes",
+        educacao_fisica: "Educação Física",
+        tecnologia: "Tecnologia",
+        redacao: "Redação",
+        geral: "Geral",
+        outro: "Outro",
+    };
+    if (!kind) return "—";
+    if (kind === "outro") return other?.trim() || "Outro";
+    return map[kind] ?? String(kind);
+}
+
 export default function AssessmentDetail() {
     const { assessmentId } = useParams<{ assessmentId: string }>();
     const nav = useNavigate();
 
-    const { data, isLoading, isError, error, refetch } = useQuery({
+    const { data, isLoading, isError, refetch } = useQuery({
         queryKey: ["assessment", assessmentId],
         queryFn: () => getAssessment(Number(assessmentId)),
         enabled: !!assessmentId,
@@ -59,30 +80,8 @@ export default function AssessmentDetail() {
         staleTime: 60_000,
     });
 
-    const goBackToClass = () => {
-        if (data?.class_id) nav(`/classes/${data.class_id}`);
-        else nav("/classes");
-    };
-
     return (
         <Box sx={{ display: "grid", gap: 2 }}>
-            {/* Header + ações */}
-            <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ xs: "flex-start", sm: "center" }} spacing={1.5}>
-                <Typography variant="h5" fontWeight={700} sx={{ flex: 1, minWidth: 0 }}>
-                    {data?.title ? toTitleCase(data.title) : isLoading ? <Skeleton width={260} height={32} /> : "Avaliação"}
-                    {data?.id ? ` #${data.id}` : null}
-                </Typography>
-
-                <Stack direction="row" spacing={1}>
-                    <Button variant="outlined" onClick={goBackToClass}>
-                        Voltar para a turma
-                    </Button>
-                    <Button color="info" variant="text" onClick={() => nav("/classes")}>
-                        Todas as turmas
-                    </Button>
-                </Stack>
-            </Stack>
-
             {/* Card de metadados */}
             <Card>
                 <CardContent>
@@ -112,7 +111,7 @@ export default function AssessmentDetail() {
 
                     {!isLoading && !isError && data && (
                         <Stack spacing={1}>
-                            <Typography variant="h6">{data.title}</Typography>
+                            <Typography variant="h5">{data.title}</Typography>
 
                             {/* linha de chips com infos chave */}
                             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
@@ -149,6 +148,13 @@ export default function AssessmentDetail() {
 
                                 <Chip
                                     size="small"
+                                    icon={<MenuBookOutlinedIcon />}
+                                    label={`Disciplina: ${subjectLabel(data.subject_kind as any, data.subject_other)}`}
+                                    variant="outlined"
+                                />
+
+                                <Chip
+                                    size="small"
                                     icon={<EventIcon />}
                                     label={data.date ? `Data: ${dayjs(data.date).format("DD/MM/YYYY")}` : "Data: —"}
                                     variant="outlined"
@@ -163,7 +169,6 @@ export default function AssessmentDetail() {
                                 />
                             </Stack>
 
-                            {/* feedback carregamento/erro da turma (opcional, discreto) */}
                             {loadingClass && (
                                 <Typography variant="body2" sx={{ opacity: 0.7 }}>
                                     Carregando turma…
@@ -187,20 +192,24 @@ export default function AssessmentDetail() {
                 </CardContent>
             </Card>
 
-            {/* Sub-navbar “sticky” para navegação agradável */}
+            {/* Sticky: subnavs */}
             <Box
                 sx={(theme) => ({
                     position: "sticky",
-                    top: 0, // se tiver AppBar fixa, ajuste para theme.mixins.toolbar.minHeight
+                    top: 0,
                     zIndex: theme.zIndex.appBar - 1,
                     bgcolor: theme.palette.background.default,
                     borderBottom: `1px solid ${theme.palette.divider}`,
                 })}
             >
-                <AssessmentSubnav />
+                <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
+                    {isLoading ? <Skeleton height={48} /> : data?.class_id && <ClassSubnav classId={data.class_id} value="assessments" />}
+                </Box>
+                <Box sx={{ bgcolor: "background.paper" }}>
+                    <AssessmentSubnav />
+                </Box>
             </Box>
 
-            {/* Conteúdo das abas */}
             <Outlet />
         </Box>
     );

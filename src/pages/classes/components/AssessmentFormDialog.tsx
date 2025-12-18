@@ -1,4 +1,3 @@
-//src/pages/classes/components/AssessmentFormDialog.tsx
 import React from "react";
 import {
     Dialog,
@@ -17,19 +16,43 @@ import {
 import ScaleOutlinedIcon from "@mui/icons-material/ScaleOutlined";
 import AutoGraphOutlinedIcon from "@mui/icons-material/AutoGraphOutlined";
 import QuizOutlinedIcon from "@mui/icons-material/QuizOutlined";
+import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import dayjs from "../../../lib/dayjs";
 import { createAssessment, updateAssessment } from "../../../api/assessments";
-import type { AssessmentOut, AssessmentCreate, WeightMode } from "../../../types/assessments";
+import type { AssessmentOut, AssessmentCreate, WeightMode, SubjectKind } from "../../../types/assessments";
 
-const schema = z.object({
-    title: z.string().min(1, "Informe o título"),
-    date: z.string().min(1, "Informe a data"),
-    weight_mode: z.enum(["fixed_all", "by_skill", "per_question"]),
-});
-type FormValues = z.infer<typeof schema>;
+const subjectEnum = z.enum([
+    "portugues",
+    "matematica",
+    "ciencias",
+    "historia",
+    "geografia",
+    "ingles",
+    "artes",
+    "educacao_fisica",
+    "tecnologia",
+    "redacao",
+    "geral",
+    "outro",
+]);
+
+const schema = z
+    .object({
+        title: z.string().min(1, "Informe o título"),
+        date: z.string().min(1, "Informe a data"),
+        weight_mode: z.enum(["fixed_all", "by_skill", "per_question"]),
+        subject_kind: subjectEnum,
+        subject_other: z
+            .string()
+            .optional()
+            .transform((v) => (v ?? "").trim()),
+    })
+    .refine((data) => data.subject_kind !== "outro" || (data.subject_other?.length ?? 0) > 0, { path: ["subject_other"], message: "Informe a disciplina." });
+
+type FormValues = z.input<typeof schema>;
 
 interface Props {
     open: boolean;
@@ -44,6 +67,7 @@ export default function AssessmentFormDialog({ open, initial, classId, onClose }
     const {
         register,
         handleSubmit,
+        watch,
         formState: { errors, isSubmitting },
     } = useForm<FormValues>({
         resolver: zodResolver(schema),
@@ -51,11 +75,14 @@ export default function AssessmentFormDialog({ open, initial, classId, onClose }
             title: initial?.title || "",
             date: initial ? dayjs(initial.date).format("YYYY-MM-DDTHH:mm") : dayjs().format("YYYY-MM-DDTHH:mm"),
             weight_mode: (initial?.weight_mode as WeightMode) || "fixed_all",
+            subject_kind: (initial?.subject_kind as SubjectKind) || "geral",
+            subject_other: initial?.subject_other || "",
         },
         shouldFocusError: true,
     });
 
     const [errMsg, setErrMsg] = React.useState<string | null>(null);
+    const chosenSubject = watch("subject_kind");
 
     const onSubmit = handleSubmit(async (values) => {
         setErrMsg(null);
@@ -65,6 +92,8 @@ export default function AssessmentFormDialog({ open, initial, classId, onClose }
                 date: values.date,
                 weight_mode: values.weight_mode,
                 class_id: classId,
+                subject_kind: values.subject_kind,
+                subject_other: values.subject_kind === "outro" ? values.subject_other || "" : null,
             };
             if (isEdit) {
                 await updateAssessment(initial!.id, payload);
@@ -106,6 +135,49 @@ export default function AssessmentFormDialog({ open, initial, classId, onClose }
                             inputProps={{ "aria-describedby": "date-hint" }}
                         />
                         <FormHelperText id="date-hint">A data usa o fuso do navegador.</FormHelperText>
+
+                        <TextField
+                            select
+                            label="Disciplina"
+                            defaultValue={initial?.subject_kind || "geral"}
+                            {...register("subject_kind")}
+                            error={!!errors.subject_kind}
+                            helperText={errors.subject_kind?.message || "Selecione a disciplina desta avaliação."}
+                        >
+                            {(
+                                [
+                                    ["geral", "Geral"],
+                                    ["portugues", "Português"],
+                                    ["matematica", "Matemática"],
+                                    ["ciencias", "Ciências"],
+                                    ["historia", "História"],
+                                    ["geografia", "Geografia"],
+                                    ["ingles", "Inglês"],
+                                    ["artes", "Artes"],
+                                    ["educacao_fisica", "Educação Física"],
+                                    ["tecnologia", "Tecnologia"],
+                                    ["redacao", "Redação"],
+                                    ["outro", "Outro"],
+                                ] as Array<[SubjectKind, string]>
+                            ).map(([val, label]) => (
+                                <MenuItem key={val} value={val}>
+                                    <ListItemIcon>
+                                        <MenuBookOutlinedIcon fontSize="small" />
+                                    </ListItemIcon>
+                                    <ListItemText primary={label} />
+                                </MenuItem>
+                            ))}
+                        </TextField>
+
+                        {chosenSubject === "outro" && (
+                            <TextField
+                                label="Disciplina (Outro)"
+                                placeholder="Ex.: Robótica Educacional"
+                                {...register("subject_other")}
+                                error={!!errors.subject_other}
+                                helperText={errors.subject_other?.message || "Informe o nome da disciplina."}
+                            />
+                        )}
 
                         <TextField
                             select

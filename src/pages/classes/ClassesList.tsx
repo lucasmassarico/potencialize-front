@@ -56,10 +56,26 @@ function useClasses() {
 /** Card clicável para mobile (xs/sm) */
 function ClassCard({ c, onEdit, onDelete }: { c: ClassOut; onEdit: (c: ClassOut) => void; onDelete: (c: ClassOut) => void }) {
     const nav = useNavigate();
+
+    const handleOpen = () => {
+        nav(`/classes/${c.id}`);
+    };
+
+    const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleOpen();
+        }
+    };
+
     return (
         <Card variant="outlined" sx={{ height: "100%" }}>
             <CardActionArea
-                onClick={() => nav(`/classes/${c.id}`)}
+                component="div" // <--- deixa de ser <button> e vira <div>
+                role="button"
+                tabIndex={0}
+                onClick={handleOpen}
+                onKeyDown={handleKeyDown}
                 sx={{
                     p: 2,
                     display: "flex",
@@ -78,6 +94,7 @@ function ClassCard({ c, onEdit, onDelete }: { c: ClassOut; onEdit: (c: ClassOut)
                         <Chip size="small" variant="outlined" label={c.teacher?.name ?? "—"} />
                     </Stack>
                 </Box>
+
                 <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
                     {/* Ações rápidas sem abrir o card */}
                     <IconButton
