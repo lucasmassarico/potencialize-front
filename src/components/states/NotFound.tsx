@@ -28,7 +28,16 @@ export default function NotFound({ resourceName = "Recurso", details, ctaHref = 
                     </Typography>
                 )}
                 <Stack direction="row" spacing={1}>
-                    <Button variant="outlined" onClick={() => nav(from ?? -1)}>
+                    <Button
+                        variant="outlined"
+                        onClick={() => {
+                            if (typeof from === "string" && from.length > 0) {
+                                nav(from);
+                            } else {
+                                nav(-1);
+                            }
+                        }}
+                    >
                         Voltar
                     </Button>
                     <Button variant="contained" onClick={() => nav(ctaHref)}>
