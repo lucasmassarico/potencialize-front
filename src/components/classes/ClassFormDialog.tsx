@@ -8,6 +8,10 @@ import type { ClassOut, ClassCreate } from "../../types/classes";
 import TeachersCombo from "../TeachersCombo";
 import type { TeacherOut } from "../../types/teachers";
 
+const MIN_CLASS_YEAR = 1900;
+const MAX_CLASS_YEAR = 2030;
+const DEFAULT_CLASS_YEAR = Math.min(new Date().getFullYear(), MAX_CLASS_YEAR);
+
 const schema = z.object({
     name: z.string().min(1, "Informe o nome").max(120, "Máx. 120 caracteres"),
     year: z
@@ -15,8 +19,8 @@ const schema = z.object({
             error: (iss) => (iss.input === undefined ? "Informe o ano" : "Ano inválido"),
         })
         .int()
-        .min(1900, { error: "Ano mínimo é 1900" })
-        .max(2030, { error: "Ano máximo é 2030" }),
+        .min(MIN_CLASS_YEAR, { error: `Ano mínimo é ${MIN_CLASS_YEAR}` })
+        .max(MAX_CLASS_YEAR, { error: `Ano máximo é ${MAX_CLASS_YEAR}` }),
     teacher_id: z.number().int().positive().optional(),
 });
 
@@ -40,7 +44,7 @@ export default function ClassFormDialog({ open, initial, currentRole, onClose }:
         resolver: zodResolver(schema),
         defaultValues: {
             name: initial?.name || "",
-            year: initial?.year || 2025,
+            year: initial?.year ?? DEFAULT_CLASS_YEAR,
             teacher_id: initial ? initial.teacher?.id : undefined,
         },
     });
@@ -66,7 +70,7 @@ export default function ClassFormDialog({ open, initial, currentRole, onClose }:
         try {
             const payload: ClassCreate = {
                 name: values.name,
-                year: Number(values.year),
+                year: values.year,
             };
             if (currentRole === "admin" && values.teacher_id) payload.teacher_id = values.teacher_id;
             if (isEdit) {
@@ -97,9 +101,9 @@ export default function ClassFormDialog({ open, initial, currentRole, onClose }:
                     <TextField
                         label="Ano"
                         type="number"
-                        inputProps={{ min: 1900, max: 2100 }}
-                        defaultValue={initial?.year || 2025}
-                        {...register("year")}
+                        inputProps={{ min: MIN_CLASS_YEAR, max: MAX_CLASS_YEAR }}
+                        defaultValue={initial?.year ?? DEFAULT_CLASS_YEAR}
+                        {...register("year", { valueAsNumber: true })}
                         error={!!errors.year}
                         helperText={errors.year?.message}
                     />
