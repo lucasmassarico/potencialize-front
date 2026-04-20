@@ -48,7 +48,7 @@ export function OverviewSkeleton() {
             {/* Dois cards de acesso rápido (Avaliações / Alunos) */}
             <Grid container spacing={2}>
                 {[0, 1].map((i) => (
-                    <Grid key={i} item xs={12} md={6}>
+                    <Grid key={i} size={{ xs: 12, sm: 6 }}>
                         <Card>
                             <CardContent>
                                 <Stack spacing={1.2}>

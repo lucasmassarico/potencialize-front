@@ -29,10 +29,7 @@ const rowSchema = z.object({
     skill_level: z.enum(["abaixo", "basico", "adequado", "avancado"]),
     weight: z.coerce.number().positive(),
     correct_option: z.enum(["a", "b", "c", "d", "e"]),
-    descriptor_id: z
-        .union([z.coerce.number().int().positive(), z.nan()])
-        .optional()
-        .transform((v) => (Number.isNaN(v) ? undefined : v)),
+    descriptor_id: z.coerce.number().int().positive().optional(),
 });
 
 function parseRows(raw: string, forceHeader: boolean) {
@@ -62,10 +59,13 @@ function parseRows(raw: string, forceHeader: boolean) {
             skill_level,
             weight,
             correct_option,
-            descriptor_id: descriptor_id ?? undefined,
+            descriptor_id: descriptor_id && descriptor_id.trim() !== "" ? descriptor_id : undefined,
         });
         if (!parsed.success) {
-            errors.push(`Linha ${i + 1}: ${parsed.error.issues.map((x) => x.message).join(", ")}`);
+            const detail = parsed.error.issues
+                .map((x) => `${x.path.join(".") || "campo"}: ${x.message}`)
+                .join("; ");
+            errors.push(`Linha ${i + 1}: ${detail}`);
             return;
         }
         items.push(parsed.data as Omit<QuestionCreate, "assessment_id">);
@@ -102,7 +102,7 @@ export default function QuestionsBulkDialog({ open, assessmentId, onClose }: Pro
         setRaw(
             `text;skill_level;weight;correct_option;descriptor_id
 Quanto é 2+2?;basico;1;a;
-Problema de multiplicação;adequado;1.5;c;12
+Problema de multiplicação;adequado;1.5;c;
 Questão avançada;avancado;2;e;`
         );
     };

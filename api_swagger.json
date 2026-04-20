@@ -1,0 +1,2724 @@
+{
+    "swagger": "2.0",
+    "basePath": "/api/v1",
+    "paths": {
+        "/assessments/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/AssessmentOut"
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "get_assessment_list",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["assessments"]
+            },
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/AssessmentOut"
+                        }
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "post_assessment_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/AssessmentCreate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["assessments"]
+            }
+        },
+        "/assessments/{assessment_id}": {
+            "parameters": [
+                {
+                    "in": "path",
+                    "description": "ID da avaliação",
+                    "name": "assessment_id",
+                    "required": true,
+                    "type": "integer"
+                }
+            ],
+            "delete": {
+                "responses": {
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "delete_assessment_detail",
+                "tags": ["assessments"]
+            },
+            "put": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/AssessmentOut"
+                        }
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "put_assessment_detail",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/AssessmentUpdate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["assessments"]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/AssessmentOut"
+                        }
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "get_assessment_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["assessments"]
+            }
+        },
+        "/assessments/{assessment_id}/analytics/matrix": {
+            "parameters": [
+                {
+                    "in": "path",
+                    "description": "ID da avaliação",
+                    "name": "assessment_id",
+                    "required": true,
+                    "type": "integer"
+                }
+            ],
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "get_assessment_analytics_matrix",
+                "parameters": [
+                    {
+                        "description": "Página de alunos (≥1). Default=1",
+                        "name": "students_page",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Itens por página [1..200]. Default=50",
+                        "name": "per_page",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["assessments"]
+            }
+        },
+        "/assessments/{assessment_id}/analytics/overview": {
+            "parameters": [
+                {
+                    "in": "path",
+                    "description": "ID da avaliação",
+                    "name": "assessment_id",
+                    "required": true,
+                    "type": "integer"
+                }
+            ],
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "summary": "Retorna visão geral (overview) de analytics de uma avaliação:",
+                "description": "- população (alunos na turma / que responderam pelo menos 1 questão)\n- geral (totais e acurácia)\n- por nível (by_skill)\n- por questão (by_question + distribuição por alternativa)\n- listas de hardest/easiest (3 ids por padrão)",
+                "operationId": "get_assessment_analytics_overview",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["assessments"]
+            }
+        },
+        "/assessments/{assessment_id}/grading-policy": {
+            "parameters": [
+                {
+                    "in": "path",
+                    "description": "ID da avaliação",
+                    "name": "assessment_id",
+                    "required": true,
+                    "type": "integer"
+                }
+            ],
+            "put": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/AssessmentGradingPolicyOut"
+                        }
+                    }
+                },
+                "summary": "Define/atualiza a política de classificação desta avaliação",
+                "operationId": "put_assessment_grading_policy",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/AssessmentGradingPolicyIn"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["assessments"]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/AssessmentGradingPolicyOut"
+                        }
+                    }
+                },
+                "summary": "Obtém a política de classificação desta avaliação (ou defaults)",
+                "operationId": "get_assessment_grading_policy",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["assessments"]
+            }
+        },
+        "/assessments/{assessment_id}/skills-weights": {
+            "parameters": [
+                {
+                    "name": "assessment_id",
+                    "in": "path",
+                    "required": true,
+                    "type": "integer"
+                }
+            ],
+            "put": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/AssessmentSkillWeightsOut"
+                        }
+                    }
+                },
+                "summary": "Define/atualiza os pesos por nível (BY_SKILL)",
+                "description": "Observações:\n- Substitui o conjunto atual pelos enviados (replace=True).\n- Pesos devem ser \u003E 0.",
+                "operationId": "put_assessment_skill_weights",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/AssessmentSkillWeightsIn"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["assessments"]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/AssessmentSkillWeightsOut"
+                        }
+                    }
+                },
+                "summary": "Obtém os pesos por nível (BY_SKILL) da avaliação",
+                "operationId": "get_assessment_skill_weights",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["assessments"]
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "summary": "Faz login",
+                "description": "Define cookies HttpOnly (access + refresh) e retorna também os tokens no body\npor compatibilidade. Em produção, considere NÃO retornar o refresh_token no body.",
+                "operationId": "post_login",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/LoginIn"
+                        }
+                    }
+                ],
+                "tags": ["auth"]
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "operationId": "post_logout",
+                "tags": ["auth"]
+            }
+        },
+        "/auth/logout-refresh": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "operationId": "post_logout_refresh",
+                "tags": ["auth"]
+            }
+        },
+        "/auth/refresh": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "operationId": "post_refresh",
+                "tags": ["auth"]
+            }
+        },
+        "/classes/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/ClassOut"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Permissão negada para professores."
+                    }
+                },
+                "description": "Lista todas as classes",
+                "operationId": "get_class_list",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": ["classes"]
+            },
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/ClassOut"
+                        }
+                    }
+                },
+                "operationId": "post_class_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/ClassCreate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["classes"]
+            }
+        },
+        "/classes/{class_id}": {
+            "parameters": [
+                {
+                    "in": "path",
+                    "description": "ID da classe",
+                    "name": "class_id",
+                    "required": true,
+                    "type": "integer"
+                }
+            ],
+            "delete": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "operationId": "delete_class_detail",
+                "tags": ["classes"]
+            },
+            "put": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/ClassOut"
+                        }
+                    }
+                },
+                "operationId": "put_class_detail",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/ClassUpdatePayload"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["classes"]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/ClassOut"
+                        }
+                    }
+                },
+                "operationId": "get_class_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["classes"]
+            }
+        },
+        "/descriptors/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/DescriptorList"
+                        }
+                    }
+                },
+                "operationId": "get_descriptor_list",
+                "parameters": [
+                    {
+                        "description": "Número de página (≥1)",
+                        "name": "page",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Itens por página (1-100)",
+                        "name": "per_page",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Campos: code,title,area,grade_year,created_at; use '-' para desc. Ex.: -created_at,code",
+                        "name": "sort",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Filtro exato ou pattern (use % na querystring) p/ code",
+                        "name": "code",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Contém no título",
+                        "name": "title",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Contém na área",
+                        "name": "area",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Ano (ex.: 5)",
+                        "name": "grade_year",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Busca livre (code/title/description/area)",
+                        "name": "q",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "teacher: visible|mine; admin: all|global|mine|by_teacher",
+                        "name": "scope",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Quando scope=by_teacher (admin)",
+                        "name": "by_teacher_id",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["descriptors"]
+            },
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/DescriptorOut"
+                        }
+                    }
+                },
+                "operationId": "post_descriptor_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/DescriptorCreate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["descriptors"]
+            }
+        },
+        "/descriptors/{descriptor_id}": {
+            "parameters": [
+                {
+                    "in": "path",
+                    "description": "ID do descritor",
+                    "name": "descriptor_id",
+                    "required": true,
+                    "type": "integer"
+                }
+            ],
+            "delete": {
+                "responses": {
+                    "204": {
+                        "description": "Removido"
+                    }
+                },
+                "operationId": "delete_descriptor_detail",
+                "tags": ["descriptors"]
+            },
+            "put": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/DescriptorOut"
+                        }
+                    }
+                },
+                "operationId": "put_descriptor_detail",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/DescriptorUpdate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["descriptors"]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/DescriptorOut"
+                        }
+                    }
+                },
+                "operationId": "get_descriptor_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["descriptors"]
+            }
+        },
+        "/healthz/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "operationId": "get_health",
+                "tags": ["healthz"]
+            }
+        },
+        "/questions/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/QuestionList"
+                        }
+                    },
+                    "422": {
+                        "description": "Parâmetro inválido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "description": "Lista questões com filtros, ordenação e paginação",
+                "operationId": "get_question_list",
+                "parameters": [
+                    {
+                        "description": "Número de página (≥1)",
+                        "name": "page",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Itens por página (1-100)",
+                        "name": "per_page",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Filtra pela prova",
+                        "name": "assessment_id",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Filtra por nível de habilidade",
+                        "name": "skill_level",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Letra correta (a...e)",
+                        "name": "correct_option",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Filtra por descritor (ID)",
+                        "name": "descriptor_id",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Campos separados por vírgula. Ex.: id,-text",
+                        "name": "sort",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["questions"]
+            },
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Criado"
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "post_question_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/QuestionCreate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["questions"]
+            }
+        },
+        "/questions/bulk": {
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Criado"
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Avaliação não encontrada"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "post_question_bulk",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/QuestionBulkRequest"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["questions"]
+            }
+        },
+        "/questions/bulk/{assessment_id}": {
+            "parameters": [
+                {
+                    "name": "assessment_id",
+                    "in": "path",
+                    "required": true,
+                    "type": "integer"
+                }
+            ],
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Criado"
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Avaliação não encontrada"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "post_question_bulk_by_assessment",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/QuestionBulkRequest"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["questions"]
+            }
+        },
+        "/questions/{question_id}": {
+            "parameters": [
+                {
+                    "in": "path",
+                    "description": "ID da questão",
+                    "name": "question_id",
+                    "required": true,
+                    "type": "integer"
+                }
+            ],
+            "delete": {
+                "responses": {
+                    "404": {
+                        "description": "Não encontrada"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    },
+                    "204": {
+                        "description": "Removida"
+                    }
+                },
+                "operationId": "delete_question_detail",
+                "tags": ["questions"]
+            },
+            "put": {
+                "responses": {
+                    "200": {
+                        "description": "Atualizada"
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Não encontrada"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "put_question_detail",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/QuestionUpdate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["questions"]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/QuestionOut"
+                        }
+                    },
+                    "404": {
+                        "description": "Não encontrada"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "get_question_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["questions"]
+            }
+        },
+        "/questions/{question_id}/result": {
+            "parameters": [
+                {
+                    "in": "path",
+                    "description": "ID da questão",
+                    "name": "question_id",
+                    "required": true,
+                    "type": "integer"
+                }
+            ],
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Questão/Aluno não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "description": "Retorna o resultado da questão por aluno.\n• Se 'student_id' for informado: retorna apenas esse aluno (status 'unanswered' se não respondeu).\n• Se 'student_id' NÃO for informado: retorna **apenas** os alunos que responderam.\nUse 'reveal_correct=false' para ocultar a alternativa correta no bloco 'question'.",
+                "operationId": "get_question_result",
+                "parameters": [
+                    {
+                        "description": "Opcional. ID do aluno",
+                        "name": "student_id",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "true|false (default: true para admin/teacher)",
+                        "name": "reveal_correct",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["questions"]
+            }
+        },
+        "/student-answers/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/StudentAnswerOut"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "get_student_answer_list",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["student-answers"]
+            },
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Criado"
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "409": {
+                        "description": "Duplicado"
+                    },
+                    "404": {
+                        "description": "Aluno/Questão não encontrado(s)"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "post_student_answer_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/StudentAnswerCreate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["student-answers"]
+            }
+        },
+        "/student-answers/bulk": {
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Criado"
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "409": {
+                        "description": "Duplicado (payload ou BD)"
+                    },
+                    "404": {
+                        "description": "Aluno/Questão não encontrado(s)"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "post_student_answer_bulk",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/StudentAnswerBulkCreate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["student-answers"]
+            }
+        },
+        "/student-answers/{answer_id}": {
+            "parameters": [
+                {
+                    "in": "path",
+                    "description": "ID da resposta",
+                    "name": "answer_id",
+                    "required": true,
+                    "type": "integer"
+                }
+            ],
+            "delete": {
+                "responses": {
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    },
+                    "204": {
+                        "description": "Removido"
+                    }
+                },
+                "operationId": "delete_student_answer_detail",
+                "tags": ["student-answers"]
+            },
+            "put": {
+                "responses": {
+                    "200": {
+                        "description": "Atualizado"
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "409": {
+                        "description": "Duplicado"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "put_student_answer_detail",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/StudentAnswerUpdate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["student-answers"]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/StudentAnswerOut"
+                        }
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "get_student_answer_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["student-answers"]
+            }
+        },
+        "/students/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/StudentList"
+                        }
+                    }
+                },
+                "description": "Lista alunos com paginação e filtros",
+                "operationId": "get_student_list",
+                "parameters": [
+                    {
+                        "description": "Número da página (≥1)",
+                        "name": "page",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Itens por página (1‒100)",
+                        "name": "per_page",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Filtra pela turma",
+                        "name": "class_id",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Filtro substring (case-insensitive)",
+                        "name": "name",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Filtro por código de chamada",
+                        "name": "register_code",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Campos separados por vírgula. Ex.: name,-created_at",
+                        "name": "sort",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["students"]
+            },
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/StudentOut"
+                        }
+                    }
+                },
+                "operationId": "post_student_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/StudentCreate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["students"]
+            }
+        },
+        "/students/bulk": {
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Criado"
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Turma não encontrada"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "summary": "Criação em lote (transacional)",
+                "description": "Regras:\n  • Se 'class_id' vier no body raiz, todos os itens devem ser da mesma turma (ou sem class_id).\n  • Professor só pode inserir alunos em turmas dele.\n  • Máximo 2000 itens por requisição.",
+                "operationId": "post_student_bulk",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/StudentBulkRequest"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["students"]
+            }
+        },
+        "/students/{student_id}": {
+            "parameters": [
+                {
+                    "in": "path",
+                    "description": "ID do aluno",
+                    "name": "student_id",
+                    "required": true,
+                    "type": "integer"
+                }
+            ],
+            "delete": {
+                "responses": {
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "delete_student_detail",
+                "tags": ["students"]
+            },
+            "put": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/StudentOut"
+                        }
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "put_student_detail",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/StudentUpdatePayload"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["students"]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/StudentOut"
+                        }
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    }
+                },
+                "operationId": "get_student_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["students"]
+            }
+        },
+        "/students/{student_id}/assessments/{assessment_id}/results": {
+            "parameters": [
+                {
+                    "in": "path",
+                    "description": "ID da avaliação",
+                    "name": "assessment_id",
+                    "required": true,
+                    "type": "integer"
+                },
+                {
+                    "in": "path",
+                    "description": "ID do aluno",
+                    "name": "student_id",
+                    "required": true,
+                    "type": "integer"
+                }
+            ],
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "summary": "Perfil individual do aluno na avaliação:",
+                "description": "respostas (com correção) + sumário.",
+                "operationId": "get_student_assessment_results",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["students"]
+            }
+        },
+        "/teachers/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/TeacherList"
+                        }
+                    },
+                    "422": {
+                        "description": "Parâmetro inválido"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "description": "Lista professores (paginada).",
+                "operationId": "get_teacher_list",
+                "parameters": [
+                    {
+                        "description": "Número da página (≥1)",
+                        "name": "page",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Itens por página (1–100)",
+                        "name": "per_page",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Busca por nome/email (substring, case-insensitive)",
+                        "name": "q",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Filtro de papel: admin|coordinator|teacher",
+                        "name": "role",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Campos separados por vírgula (name,email,created_at,id,role). Use '-' para DESC. Ex.: name,-created_at",
+                        "name": "sort",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["teachers"]
+            },
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Criado"
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "409": {
+                        "description": "E-mail já utilizado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "post_teacher_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/TeacherCreate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["teachers"]
+            }
+        },
+        "/teachers/{teacher_id}": {
+            "parameters": [
+                {
+                    "in": "path",
+                    "description": "ID do professor",
+                    "name": "teacher_id",
+                    "required": true,
+                    "type": "integer"
+                }
+            ],
+            "delete": {
+                "responses": {
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    },
+                    "204": {
+                        "description": "Removido"
+                    }
+                },
+                "operationId": "delete_teacher_detail",
+                "tags": ["teachers"]
+            },
+            "put": {
+                "responses": {
+                    "200": {
+                        "description": "Atualizado"
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "409": {
+                        "description": "E-mail já utilizado"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "put_teacher_detail",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/TeacherUpdatePayload"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["teachers"]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/TeacherOut"
+                        }
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "description": "Busca um professor pelo ID",
+                "operationId": "get_teacher_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["teachers"]
+            }
+        }
+    },
+    "info": {
+        "title": "Nivelize API",
+        "version": "1.0",
+        "description": "Gerenciamento de turmas e avaliações"
+    },
+    "produces": ["application/json"],
+    "consumes": ["application/json"],
+    "tags": [
+        {
+            "name": "students",
+            "description": "Operações de alunos"
+        },
+        {
+            "name": "classes",
+            "description": "Operações de turmas"
+        },
+        {
+            "name": "teachers",
+            "description": "Operações de professores"
+        },
+        {
+            "name": "assessments",
+            "description": "Operações de avaliações"
+        },
+        {
+            "name": "questions",
+            "description": "Operações de questões"
+        },
+        {
+            "name": "student-answers",
+            "description": "Respostas dos alunos"
+        },
+        {
+            "name": "descriptors",
+            "description": "Operações de descritores (globais e do professor)"
+        },
+        {
+            "name": "auth",
+            "description": "Autenticação"
+        },
+        {
+            "name": "healthz",
+            "description": "Health-check"
+        }
+    ],
+    "definitions": {
+        "StudentCreate": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "register_code": {
+                    "type": "string"
+                },
+                "class_id": {
+                    "type": "integer"
+                }
+            },
+            "type": "object"
+        },
+        "StudentList": {
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/StudentOut"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
+                },
+                "has_next": {
+                    "type": "boolean"
+                },
+                "has_prev": {
+                    "type": "boolean"
+                }
+            },
+            "type": "object"
+        },
+        "StudentOut": {
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "register_code": {
+                    "type": "string"
+                },
+                "class_id": {
+                    "type": "integer"
+                }
+            },
+            "type": "object"
+        },
+        "StudentUpdatePayload": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "register_code": {
+                    "type": "string"
+                },
+                "class_id": {
+                    "type": "integer"
+                }
+            },
+            "type": "object"
+        },
+        "StudentBulkRequest": {
+            "required": ["items"],
+            "properties": {
+                "class_id": {
+                    "type": "integer",
+                    "description": "Aplica para todos os itens que não informarem class_id"
+                },
+                "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/StudentBulkItem"
+                    }
+                }
+            },
+            "type": "object"
+        },
+        "StudentBulkItem": {
+            "required": ["name"],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "register_code": {
+                    "type": "string"
+                },
+                "class_id": {
+                    "type": "integer",
+                    "description": "Opcional se 'class_id' vier no body raiz"
+                }
+            },
+            "type": "object"
+        },
+        "ClassCreate": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "integer"
+                },
+                "teacher_id": {
+                    "type": "integer",
+                    "description": "Se omitido, será definido como o usuário autenticado."
+                }
+            },
+            "type": "object"
+        },
+        "ClassOut": {
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "integer"
+                },
+                "teacher": {
+                    "$ref": "#/definitions/TeacherRef"
+                },
+                "students": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/StudentRef"
+                    }
+                },
+                "assessments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/AssessmentRef"
+                    }
+                }
+            },
+            "type": "object"
+        },
+        "TeacherRef": {
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "StudentRef": {
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "AssessmentRef": {
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "ClassUpdatePayload": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "integer"
+                },
+                "teacher_id": {
+                    "type": "integer"
+                }
+            },
+            "type": "object"
+        },
+        "TeacherCreate": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string",
+                    "description": "Perfil do usuário (teacher, coordinator, admin).",
+                    "example": "teacher",
+                    "enum": ["teacher", "coordinator", "admin"]
+                }
+            },
+            "type": "object"
+        },
+        "TeacherList": {
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/TeacherOut"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
+                },
+                "has_next": {
+                    "type": "boolean"
+                },
+                "has_prev": {
+                    "type": "boolean"
+                }
+            },
+            "type": "object"
+        },
+        "TeacherOut": {
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string",
+                    "description": "Perfil do usuário (teacher, coordinator, admin).",
+                    "example": "teacher",
+                    "enum": ["teacher", "coordinator", "admin"]
+                }
+            },
+            "type": "object"
+        },
+        "TeacherUpdatePayload": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "teacher",
+                    "enum": ["teacher", "coordinator", "admin"]
+                }
+            },
+            "type": "object"
+        },
+        "AssessmentCreate": {
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "readOnly": true
+                },
+                "title": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "weight_mode": {
+                    "type": "string",
+                    "description": "• **fixed_all** – mesmo peso para todas as questões\n• **by_skill** – peso por categoria (SkillLevel)\n• **per_question** – peso arbitrário por questão",
+                    "example": "fixed_all",
+                    "enum": ["fixed_all", "by_skill", "per_question"]
+                },
+                "class_id": {
+                    "type": "integer"
+                },
+                "subject_kind": {
+                    "type": "string",
+                    "description": "Disciplina da avaliação. Use 'outro' com 'subject_other'.",
+                    "example": "portugues",
+                    "enum": [
+                        "portugues",
+                        "matematica",
+                        "ciencias",
+                        "historia",
+                        "geografia",
+                        "ingles",
+                        "artes",
+                        "educacao_fisica",
+                        "tecnologia",
+                        "redacao",
+                        "geral",
+                        "outro"
+                    ]
+                },
+                "subject_other": {
+                    "type": "string",
+                    "description": "Obrigatório quando subject_kind='outro'"
+                }
+            },
+            "type": "object"
+        },
+        "AssessmentOut": {
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "weight_mode": {
+                    "type": "string",
+                    "description": "• **fixed_all** – mesmo peso para todas as questões\n• **by_skill** – peso por categoria (SkillLevel)\n• **per_question** – peso arbitrário por questão",
+                    "example": "fixed_all",
+                    "enum": ["fixed_all", "by_skill", "per_question"]
+                },
+                "class_id": {
+                    "type": "integer"
+                },
+                "subject_kind": {
+                    "type": "string",
+                    "description": "Disciplina da avaliação. Use 'outro' com 'subject_other'.",
+                    "example": "portugues",
+                    "enum": [
+                        "portugues",
+                        "matematica",
+                        "ciencias",
+                        "historia",
+                        "geografia",
+                        "ingles",
+                        "artes",
+                        "educacao_fisica",
+                        "tecnologia",
+                        "redacao",
+                        "geral",
+                        "outro"
+                    ]
+                },
+                "subject_other": {
+                    "type": "string",
+                    "description": "Obrigatório quando subject_kind='outro'"
+                }
+            },
+            "type": "object"
+        },
+        "AssessmentUpdate": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/AssessmentOut"
+                },
+                {
+                    "properties": {
+                        "title": {
+                            "type": "string"
+                        },
+                        "date": {
+                            "type": "string",
+                            "format": "date-time"
+                        },
+                        "weight_mode": {
+                            "type": "string",
+                            "description": "• **fixed_all** – mesmo peso para todas as questões\n• **by_skill** – peso por categoria (SkillLevel)\n• **per_question** – peso arbitrário por questão",
+                            "example": "fixed_all",
+                            "enum": ["fixed_all", "by_skill", "per_question"]
+                        },
+                        "class_id": {
+                            "type": "integer"
+                        }
+                    },
+                    "type": "object"
+                }
+            ]
+        },
+        "AssessmentSkillWeightsIn": {
+            "required": ["items"],
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/SkillWeightItem"
+                    }
+                }
+            },
+            "type": "object"
+        },
+        "SkillWeightItem": {
+            "properties": {
+                "skill_level": {
+                    "type": "string",
+                    "example": "abaixo",
+                    "enum": ["abaixo", "basico", "adequado", "avancado"]
+                },
+                "weight": {
+                    "type": "number",
+                    "description": "Peso \u003E 0"
+                }
+            },
+            "type": "object"
+        },
+        "AssessmentSkillWeightsOut": {
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/SkillWeightItem"
+                    }
+                }
+            },
+            "type": "object"
+        },
+        "AssessmentGradingPolicyIn": {
+            "properties": {
+                "basis": {
+                    "type": "string",
+                    "description": "Base do cálculo do % para classificação",
+                    "example": "by_points",
+                    "enum": ["by_points", "by_accuracy"]
+                },
+                "count_blank_as_wrong": {
+                    "type": "boolean",
+                    "description": "Em branco conta contra (entra no denominador)"
+                },
+                "advanced_min": {
+                    "type": "number",
+                    "description": "Corte para Avançado (0..100)"
+                },
+                "adequate_min": {
+                    "type": "number",
+                    "description": "Corte para Adequado (0..100)"
+                },
+                "basic_min": {
+                    "type": "number",
+                    "description": "Corte para Básico (0..100)"
+                }
+            },
+            "type": "object"
+        },
+        "AssessmentGradingPolicyOut": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/AssessmentGradingPolicyIn"
+                },
+                {
+                    "properties": {
+                        "assessment_id": {
+                            "type": "integer"
+                        }
+                    },
+                    "type": "object"
+                }
+            ]
+        },
+        "QuestionCreate": {
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "readOnly": true
+                },
+                "text": {
+                    "type": "string"
+                },
+                "skill_level": {
+                    "type": "string",
+                    "description": "• **abaixo** – Abaixo do básico\n• **basico** – Básico\n• **adequado** – Adequado\n• **avancado** – Avançado\n",
+                    "example": "abaixo",
+                    "enum": ["abaixo", "basico", "adequado", "avancado"]
+                },
+                "weight": {
+                    "type": "number"
+                },
+                "correct_option": {
+                    "type": "string",
+                    "description": "Letra marcada/correta (A … E)",
+                    "example": "a",
+                    "enum": ["a", "b", "c", "d", "e"]
+                },
+                "assessment_id": {
+                    "type": "integer"
+                },
+                "descriptor_id": {
+                    "type": "integer",
+                    "description": "ID do descritor (opcional)"
+                }
+            },
+            "type": "object"
+        },
+        "QuestionList": {
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/QuestionOut"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
+                },
+                "has_next": {
+                    "type": "boolean"
+                },
+                "has_prev": {
+                    "type": "boolean"
+                }
+            },
+            "type": "object"
+        },
+        "QuestionOut": {
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "skill_level": {
+                    "type": "string",
+                    "description": "• **abaixo** – Abaixo do básico\n• **basico** – Básico\n• **adequado** – Adequado\n• **avancado** – Avançado\n",
+                    "example": "abaixo",
+                    "enum": ["abaixo", "basico", "adequado", "avancado"]
+                },
+                "weight": {
+                    "type": "number"
+                },
+                "correct_option": {
+                    "type": "string",
+                    "description": "Letra marcada/correta (A … E)",
+                    "example": "a",
+                    "enum": ["a", "b", "c", "d", "e"]
+                },
+                "assessment_id": {
+                    "type": "integer"
+                },
+                "descriptor_id": {
+                    "type": "integer",
+                    "description": "ID do descritor (opcional)"
+                }
+            },
+            "type": "object"
+        },
+        "QuestionUpdate": {
+            "allOf": [
+                {
+                    "$ref": "#/definitions/QuestionOut"
+                },
+                {
+                    "properties": {
+                        "text": {
+                            "type": "string"
+                        },
+                        "skill_level": {
+                            "type": "string",
+                            "description": "• **abaixo** – Abaixo do básico\n• **basico** – Básico\n• **adequado** – Adequado\n• **avancado** – Avançado\n",
+                            "example": "abaixo",
+                            "enum": ["abaixo", "basico", "adequado", "avancado"]
+                        },
+                        "weight": {
+                            "type": "number"
+                        },
+                        "assessment_id": {
+                            "type": "integer"
+                        },
+                        "correct_option": {
+                            "type": "string",
+                            "description": "Letra marcada/correta (A … E)",
+                            "example": "a",
+                            "enum": ["a", "b", "c", "d", "e"]
+                        },
+                        "descriptor_id": {
+                            "type": "integer"
+                        }
+                    },
+                    "type": "object"
+                }
+            ]
+        },
+        "QuestionBulkRequest": {
+            "required": ["items"],
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "description": "Todos devem ter o mesmo assessment_id; use a rota com path param para herdar.",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/QuestionCreate"
+                    }
+                }
+            },
+            "type": "object"
+        },
+        "StudentAnswerCreate": {
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "readOnly": true
+                },
+                "marked_option": {
+                    "type": "string",
+                    "description": "Letra marcada/correta (A … E)",
+                    "example": "a",
+                    "enum": ["a", "b", "c", "d", "e"]
+                },
+                "student_id": {
+                    "type": "integer"
+                },
+                "question_id": {
+                    "type": "integer"
+                }
+            },
+            "type": "object"
+        },
+        "StudentAnswerOut": {
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "marked_option": {
+                    "type": "string",
+                    "description": "Letra marcada/correta (A … E)",
+                    "example": "a",
+                    "enum": ["a", "b", "c", "d", "e"]
+                },
+                "student_id": {
+                    "type": "integer"
+                },
+                "question_id": {
+                    "type": "integer"
+                }
+            },
+            "type": "object"
+        },
+        "StudentAnswerUpdate": {
+            "properties": {
+                "marked_option": {
+                    "type": "string",
+                    "description": "Letra marcada/correta (A … E)",
+                    "example": "a",
+                    "enum": ["a", "b", "c", "d", "e"]
+                }
+            },
+            "type": "object"
+        },
+        "StudentAnswerBulkCreate": {
+            "required": ["items"],
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 5000,
+                    "items": {
+                        "$ref": "#/definitions/StudentAnswerBulkItem"
+                    }
+                }
+            },
+            "type": "object"
+        },
+        "StudentAnswerBulkItem": {
+            "required": ["question_id", "student_id"],
+            "properties": {
+                "student_id": {
+                    "type": "integer"
+                },
+                "question_id": {
+                    "type": "integer"
+                },
+                "marked_option": {
+                    "type": "string",
+                    "description": "Letra marcada/correta (A … E)",
+                    "example": "a",
+                    "enum": ["a", "b", "c", "d", "e"]
+                }
+            },
+            "type": "object"
+        },
+        "DescriptorCreate": {
+            "required": ["code", "title"],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "description": "Ex.: D1"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "area": {
+                    "type": "string"
+                },
+                "grade_year": {
+                    "type": "integer"
+                }
+            },
+            "type": "object"
+        },
+        "DescriptorList": {
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/DescriptorOut"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
+                },
+                "has_next": {
+                    "type": "boolean"
+                },
+                "has_prev": {
+                    "type": "boolean"
+                }
+            },
+            "type": "object"
+        },
+        "DescriptorOut": {
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "code": {
+                    "type": "string",
+                    "example": "D1"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "area": {
+                    "type": "string"
+                },
+                "grade_year": {
+                    "type": "integer"
+                },
+                "owner_teacher_id": {
+                    "type": "integer",
+                    "description": "NULL para globais"
+                }
+            },
+            "type": "object"
+        },
+        "DescriptorUpdate": {
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "area": {
+                    "type": "string"
+                },
+                "grade_year": {
+                    "type": "integer"
+                }
+            },
+            "type": "object"
+        },
+        "LoginIn": {
+            "required": ["email", "password"],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        }
+    },
+    "responses": {
+        "ParseError": {
+            "description": "When a mask can't be parsed"
+        },
+        "MaskError": {
+            "description": "When any error occurs on mask"
+        },
+        "ExpiredSignatureError": {},
+        "NoAuthorizationError": {},
+        "CSRFError": {},
+        "RevokedTokenError": {},
+        "FreshTokenRequired": {},
+        "UserClaimsVerificationError": {},
+        "InvalidHeaderError": {},
+        "InvalidQueryParamError": {},
+        "JWTDecodeError": {},
+        "DecodeError": {},
+        "InvalidTokenError": {},
+        "ForbiddenError": {},
+        "ValidationError": {}
+    }
+}

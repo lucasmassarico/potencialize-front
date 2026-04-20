@@ -86,50 +86,6 @@ function CardsSkeleton() {
     );
 }
 
-function QuestionCard({ q, onEdit, onDelete }: { q: QuestionOut; onEdit: (q: QuestionOut) => void; onDelete: (q: QuestionOut) => void }) {
-    return (
-        <Card variant="outlined" sx={{ height: "100%" }}>
-            <CardActionArea
-                onClick={() => onEdit(q)}
-                sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}
-                aria-label={`Editar questão #${q.id}`}
-            >
-                <Box sx={{ minWidth: 0 }}>
-                    <Typography fontWeight={700} noWrap title={q.text}>
-                        #{q.id} — {q.text}
-                    </Typography>
-                    <Stack direction="row" spacing={1} mt={0.75} sx={{ alignItems: "center" }}>
-                        <Chip size="small" color={skillChipColor(q.skill_level)} variant="outlined" label={SKILL_LABEL[q.skill_level]} />
-                        <Chip size="small" label={`Peso ${q.weight}`} />
-                        <Chip size="small" variant="outlined" label={`Correta: ${q.correct_option.toUpperCase()}`} />
-                    </Stack>
-                </Box>
-                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
-                    <IconButton
-                        aria-label="editar"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onEdit(q);
-                        }}
-                    >
-                        <EditIcon />
-                    </IconButton>
-                    <IconButton
-                        aria-label="excluir"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(q);
-                        }}
-                    >
-                        <DeleteIcon />
-                    </IconButton>
-                    <ChevronRightIcon sx={{ ml: 0.5 }} />
-                </Stack>
-            </CardActionArea>
-        </Card>
-    );
-}
-
 export default function AssessmentQuestions() {
     const { assessmentId } = useParams<{ assessmentId: string }>();
     const qc = useQueryClient();
@@ -254,6 +210,25 @@ export default function AssessmentQuestions() {
                         {OPTION_OPTS.map((o) => (
                             <MenuItem key={o} value={o}>
                                 {o.toUpperCase()}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                    <InputLabel id="per-page">Por página</InputLabel>
+                    <Select
+                        labelId="per-page"
+                        label="Por página"
+                        value={perPage}
+                        onChange={(e) => {
+                            setPerPage(Number(e.target.value));
+                            setPage(1);
+                        }}
+                    >
+                        {[10, 20, 50, 100].map((n) => (
+                            <MenuItem key={n} value={n}>
+                                {n}
                             </MenuItem>
                         ))}
                     </Select>
