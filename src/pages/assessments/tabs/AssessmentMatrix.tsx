@@ -40,6 +40,10 @@ import type { SkillLevel } from "../../../types/questions";
 
 type AnswerIndex = Map<string, { id?: number; marked?: AnswerOption }>; // key: `${studentId}-${questionId}`
 
+const STUDENT_COL_WIDTH = 260;
+const RESULT_COL_WIDTH = 200;
+const RESULT_COL_LEFT = STUDENT_COL_WIDTH;
+
 const SKILL_LABEL: Record<SkillLevel, string> = {
     abaixo: "Abaixo do Básico",
     basico: "Básico",
@@ -87,6 +91,15 @@ export default function AssessmentMatrix() {
 
     const [gradeOpen, setGradeOpen] = React.useState(false);
     const [bulkOpen, setBulkOpen] = React.useState(false);
+
+    // Crosshair de foco (linha + coluna) ao passar o mouse na matriz
+    const [hover, setHover] = React.useState<{ s?: number; q?: number }>({});
+    const setHoverIfChanged = React.useCallback((s?: number, q?: number) => {
+        setHover((prev) => (prev.s === s && prev.q === q ? prev : { s, q }));
+    }, []);
+    const clearHover = React.useCallback(() => {
+        setHover((prev) => (prev.s === undefined && prev.q === undefined ? prev : {}));
+    }, []);
 
     // Células com request em andamento (para o editor inline)
     const MIN_PENDING_MS = 500;
@@ -232,6 +245,7 @@ export default function AssessmentMatrix() {
 
     const renderHead = (q: MatrixQuestion, idx: number) => {
         const lvl = q.skill_level as SkillLevel;
+        const isHoveredCol = hover.q === q.id;
         return (
             <Tooltip
                 key={q.id}
@@ -248,14 +262,16 @@ export default function AssessmentMatrix() {
             >
                 <TableCell
                     align="center"
-                    sx={{
+                    onMouseEnter={() => setHoverIfChanged(undefined, q.id)}
+                    sx={(t) => ({
                         position: "sticky",
                         top: 0,
-                        backgroundColor: "background.paper",
-                        zIndex: 2,
+                        backgroundColor: isHoveredCol ? alpha(t.palette.primary.main, 0.12) : t.palette.background.paper,
+                        zIndex: 3,
                         whiteSpace: "nowrap",
-                        borderBottom: (t) => `1px solid ${t.palette.divider}`,
-                    }}
+                        borderBottom: `1px solid ${t.palette.divider}`,
+                        transition: "background-color 120ms ease",
+                    })}
                 >
                     <Stack spacing={0.5} alignItems="center">
                         <Typography variant="caption" fontWeight={700}>
@@ -422,8 +438,11 @@ export default function AssessmentMatrix() {
                 {data && (
                     <>
                         <TableContainer
+                            onMouseLeave={clearHover}
                             sx={{
                                 maxWidth: "100%",
+                                maxHeight: "calc(100vh - 280px)",
+                                minHeight: 400,
                                 overflow: "auto",
                                 borderRadius: 1,
                                 border: (t) => `1px solid ${t.palette.divider}`,
@@ -436,8 +455,11 @@ export default function AssessmentMatrix() {
                                             sx={{
                                                 position: "sticky",
                                                 left: 0,
-                                                zIndex: 3,
+                                                zIndex: 4,
                                                 top: 0,
+                                                width: STUDENT_COL_WIDTH,
+                                                minWidth: STUDENT_COL_WIDTH,
+                                                maxWidth: STUDENT_COL_WIDTH,
                                                 backgroundColor: "background.paper",
                                                 whiteSpace: "nowrap",
                                                 borderBottom: (t) => `1px solid ${t.palette.divider}`,
@@ -447,12 +469,14 @@ export default function AssessmentMatrix() {
                                         </TableCell>
                                         {/* ➕ NOVA COLUNA: Resultado (predição do aluno) */}
                                         <TableCell
-                                            width={200}
                                             sx={{
                                                 top: 0,
                                                 position: "sticky",
-                                                left: 240, // ajuste fino se quiser manter “Resultado” parcialmente preso; remova 'position' e 'left' se preferir não-sticky
-                                                zIndex: 2,
+                                                left: RESULT_COL_LEFT,
+                                                zIndex: 4,
+                                                width: RESULT_COL_WIDTH,
+                                                minWidth: RESULT_COL_WIDTH,
+                                                maxWidth: RESULT_COL_WIDTH,
                                                 backgroundColor: "background.paper",
                                                 borderBottom: (t) => `1px solid ${t.palette.divider}`,
                                             }}
@@ -468,18 +492,25 @@ export default function AssessmentMatrix() {
                                         const res = resultMap.get(s.id);
                                         const loading = resultLoading.has(s.id);
                                         const chipLabel = res ? `${res.label} • ${Math.round(res.percent)}%` : "—";
+                                        const isHoveredRow = hover.s === s.id;
 
                                         return (
                                             <TableRow key={s.id} hover>
                                                 <TableCell
-                                                    sx={{
+                                                    onMouseEnter={() => setHoverIfChanged(s.id, undefined)}
+                                                    sx={(t) => ({
                                                         position: "sticky",
                                                         left: 0,
-                                                        zIndex: 1,
-                                                        backgroundColor: "background.paper",
+                                                        zIndex: 2,
+                                                        backgroundColor: isHoveredRow
+                                                            ? alpha(t.palette.primary.main, 0.12)
+                                                            : t.palette.background.paper,
                                                         whiteSpace: "nowrap",
-                                                        maxWidth: 260,
-                                                    }}
+                                                        width: STUDENT_COL_WIDTH,
+                                                        minWidth: STUDENT_COL_WIDTH,
+                                                        maxWidth: STUDENT_COL_WIDTH,
+                                                        transition: "background-color 120ms ease",
+                                                    })}
                                                     title={s.name}
                                                 >
                                                     <Typography noWrap>{s.name}</Typography>
@@ -487,10 +518,20 @@ export default function AssessmentMatrix() {
 
                                                 {/* ➕ CÉLULA DO RESULTADO */}
                                                 <TableCell
-                                                    sx={{
+                                                    onMouseEnter={() => setHoverIfChanged(s.id, undefined)}
+                                                    sx={(t) => ({
+                                                        position: "sticky",
+                                                        left: RESULT_COL_LEFT,
+                                                        zIndex: 2,
+                                                        backgroundColor: isHoveredRow
+                                                            ? alpha(t.palette.primary.main, 0.12)
+                                                            : t.palette.background.paper,
                                                         whiteSpace: "nowrap",
-                                                        maxWidth: 240,
-                                                    }}
+                                                        width: RESULT_COL_WIDTH,
+                                                        minWidth: RESULT_COL_WIDTH,
+                                                        maxWidth: RESULT_COL_WIDTH,
+                                                        transition: "background-color 120ms ease",
+                                                    })}
                                                 >
                                                     {loading ? (
                                                         <Stack direction="row" spacing={1} alignItems="center">
@@ -545,9 +586,28 @@ export default function AssessmentMatrix() {
                                                     const pendingFlag = isPending(key);
                                                     const c = cellMap.get(key);
                                                     const shown = c?.marked_option ? c.marked_option.toUpperCase() : "—";
+                                                    const isHoveredCol = hover.q === q.id;
+                                                    const isCrosshair = isHoveredRow || isHoveredCol;
+                                                    const isFocus = isHoveredRow && isHoveredCol;
+                                                    const baseStyles = getCellStyles(c?.marked_option, c?.is_correct, pendingFlag);
+                                                    const crosshairStyles = (t: any) => {
+                                                        const base = typeof baseStyles === "function" ? baseStyles(t) : baseStyles;
+                                                        if (!isCrosshair) return base;
+                                                        const overlay = alpha(t.palette.primary.main, isFocus ? 0.22 : 0.1);
+                                                        return {
+                                                            ...base,
+                                                            backgroundColor: overlay,
+                                                            transition: "background-color 120ms ease",
+                                                        };
+                                                    };
 
                                                     return (
-                                                        <TableCell key={key} align="center" sx={getCellStyles(c?.marked_option, c?.is_correct, pendingFlag)}>
+                                                        <TableCell
+                                                            key={key}
+                                                            align="center"
+                                                            onMouseEnter={() => setHoverIfChanged(s.id, q.id)}
+                                                            sx={crosshairStyles}
+                                                        >
                                                             {pendingFlag ? (
                                                                 <CircularProgress size={16} />
                                                             ) : editMode ? (
