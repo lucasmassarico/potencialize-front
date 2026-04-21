@@ -22,7 +22,7 @@ export type SubjectKind =
 export interface AssessmentOut {
     id: number;
     title: string;
-    date: string; // ISO "YYYY-MM-DDTHH:MM"
+    date: string; // "YYYY-MM-DD"
     weight_mode: WeightMode;
     class_id: number;
     subject_kind?: SubjectKind; // novo
@@ -31,7 +31,7 @@ export interface AssessmentOut {
 
 export interface AssessmentCreate {
     title: string;
-    date: string; // "YYYY-MM-DDTHH:MM"
+    date: string; // "YYYY-MM-DD"
     weight_mode: WeightMode;
     class_id: number;
     subject_kind: SubjectKind; // novo

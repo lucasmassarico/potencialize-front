@@ -22,9 +22,12 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { QuestionOut, SkillLevel, Option } from "../../../types/questions";
+import type { DescriptorOut } from "../../../types/descriptors";
 import { createQuestion, updateQuestion } from "../../../api/questions";
 import { getAssessment } from "../../../api/assessments";
 import { useQuery } from "@tanstack/react-query";
+import DescriptorsCombo from "../../../components/DescriptorsCombo";
+import { useAllDescriptors } from "../../../hooks/useDescriptors";
 
 const schema = z.object({
     text: z.string().min(1, "Informe o enunciado"),
@@ -34,8 +37,6 @@ const schema = z.object({
     weight: z.coerce.number().min(0, "Peso deve ser ≥ 0"),
 
     correct_option: z.enum(["a", "b", "c", "d", "e"]),
-
-    descriptor_id: z.number().int().positive().nullable().optional(),
 });
 
 const SKILL_LABEL: Record<SkillLevel, string> = {
@@ -70,6 +71,9 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
     const isPerQuestion = assess?.weight_mode === "per_question";
     const isBySkill = assess?.weight_mode === "by_skill";
 
+    const { data: allDescriptors } = useAllDescriptors();
+    const [descriptor, setDescriptor] = React.useState<DescriptorOut | null>(null);
+
     const {
         register,
         handleSubmit,
@@ -84,7 +88,6 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
             skill_level: "basico", // Valor fixo ao criar, quando o campo não aparece
             weight: 1,
             correct_option: "a",
-            descriptor_id: null,
         },
     });
 
@@ -94,9 +97,19 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
             skill_level: initial?.skill_level ?? "basico", // Valores fixos, quando oculto
             weight: initial?.weight ?? 1,
             correct_option: initial?.correct_option ?? "a",
-            descriptor_id: initial?.descriptor_id ?? null,
         });
     }, [initial, reset, open]);
+
+    React.useEffect(() => {
+        if (!open) return;
+        const id = initial?.descriptor_id ?? null;
+        if (id == null) {
+            setDescriptor(null);
+            return;
+        }
+        const found = allDescriptors?.find((d) => d.id === id) ?? null;
+        setDescriptor(found);
+    }, [open, initial, allDescriptors]);
 
     const [errMsg, setErrMsg] = React.useState<string | null>(null);
 
@@ -111,7 +124,7 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
             weight: weightToSend,
             correct_option: values.correct_option,
             assessment_id: assessmentId,
-            descriptor_id: values.descriptor_id ?? null,
+            descriptor_id: descriptor?.id ?? null,
         };
 
         try {
@@ -210,17 +223,14 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
                             </ToggleButtonGroup>
                         </FormControl>
 
-                        <TextField
-                            label="Descritor (opcional)"
-                            type="number"
-                            fullWidth
-                            {...register("descriptor_id", {
-                                setValueAs: (v) => (v === "" || v === undefined || v === null ? null : Number(v)),
-                            })}
-                            error={!!errors.descriptor_id}
-                            helperText={errors.descriptor_id?.message || "Informe um inteiro (> 0) ou deixe em branco"}
-                        />
                     </Stack>
+
+                    <DescriptorsCombo
+                        label="Descritor (opcional)"
+                        value={descriptor}
+                        onChange={setDescriptor}
+                        helperText="Busque por código, título, descrição ou área"
+                    />
 
                     {errMsg && <Alert severity="error">{errMsg}</Alert>}
                 </Stack>

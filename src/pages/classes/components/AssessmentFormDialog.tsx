@@ -11,7 +11,6 @@ import {
     MenuItem,
     ListItemIcon,
     ListItemText,
-    FormHelperText,
 } from "@mui/material";
 import ScaleOutlinedIcon from "@mui/icons-material/ScaleOutlined";
 import AutoGraphOutlinedIcon from "@mui/icons-material/AutoGraphOutlined";
@@ -73,7 +72,7 @@ export default function AssessmentFormDialog({ open, initial, classId, onClose }
         resolver: zodResolver(schema),
         defaultValues: {
             title: initial?.title || "",
-            date: initial ? dayjs(initial.date).format("YYYY-MM-DDTHH:mm") : dayjs().format("YYYY-MM-DDTHH:mm"),
+            date: initial ? dayjs(initial.date).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
             weight_mode: (initial?.weight_mode as WeightMode) || "fixed_all",
             subject_kind: (initial?.subject_kind as SubjectKind) || "geral",
             subject_other: initial?.subject_other || "",
@@ -126,15 +125,13 @@ export default function AssessmentFormDialog({ open, initial, classId, onClose }
 
                         <TextField
                             label="Data"
-                            type="datetime-local"
-                            defaultValue={initial ? dayjs(initial.date).format("YYYY-MM-DDTHH:mm") : dayjs().format("YYYY-MM-DDTHH:mm")}
+                            type="date"
+                            defaultValue={initial ? dayjs(initial.date).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD")}
                             {...register("date")}
                             error={!!errors.date}
-                            helperText={errors.date?.message || "Use o formato local (com horas e minutos)."}
+                            helperText={errors.date?.message || "Informe a data da avaliação."}
                             InputLabelProps={{ shrink: true }}
-                            inputProps={{ "aria-describedby": "date-hint" }}
                         />
-                        <FormHelperText id="date-hint">A data usa o fuso do navegador.</FormHelperText>
 
                         <TextField
                             select
