@@ -380,15 +380,15 @@ export default function DescriptorsList() {
 
                             <Box sx={{ display: { xs: "none", md: "block" } }}>
                                 <TableContainer>
-                                    <Table size="small" aria-label="Lista de descritores">
+                                    <Table size="small" aria-label="Lista de descritores" sx={{ tableLayout: "fixed", width: "100%" }}>
                                         <TableHead>
                                             <TableRow>
-                                                <TableCell width={110}>Código</TableCell>
-                                                <TableCell>Título</TableCell>
-                                                <TableCell width={180}>Área</TableCell>
-                                                <TableCell width={90}>Ano</TableCell>
-                                                <TableCell width={160}>Autoria</TableCell>
-                                                <TableCell align="right" width={120}>Ações</TableCell>
+                                                <TableCell sx={{ width: 180 }}>Código</TableCell>
+                                                <TableCell sx={{ maxWidth: 0 }}>Título</TableCell>
+                                                <TableCell sx={{ width: 160 }}>Área</TableCell>
+                                                <TableCell sx={{ width: 80 }}>Ano</TableCell>
+                                                <TableCell sx={{ width: 150 }}>Autoria</TableCell>
+                                                <TableCell align="right" sx={{ width: 110 }}>Ações</TableCell>
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
@@ -398,13 +398,20 @@ export default function DescriptorsList() {
                                                         <Chip
                                                             size="small"
                                                             label={d.code}
-                                                            sx={{ fontFamily: "monospace", fontWeight: 700 }}
+                                                            sx={{ fontFamily: "monospace", fontWeight: 700, maxWidth: "100%" }}
                                                         />
                                                     </TableCell>
-                                                    <TableCell>
-                                                        <Typography fontWeight={600}>{d.title}</Typography>
+                                                    <TableCell sx={{ maxWidth: 0 }}>
+                                                        <Typography
+                                                            fontWeight={600}
+                                                            noWrap
+                                                            title={d.title}
+                                                            sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
+                                                        >
+                                                            {d.title}
+                                                        </Typography>
                                                         {d.description && (
-                                                            <Typography variant="body2" color="text.secondary" noWrap title={d.description}>
+                                                            <Typography variant="body2" color="text.secondary" noWrap title={d.description} sx={{ overflow: "hidden", textOverflow: "ellipsis" }}>
                                                                 {d.description}
                                                             </Typography>
                                                         )}
