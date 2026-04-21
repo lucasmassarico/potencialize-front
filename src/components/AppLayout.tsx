@@ -20,6 +20,7 @@ import {
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import SchoolIcon from "@mui/icons-material/School";
+import RuleIcon from "@mui/icons-material/Rule";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useAuth } from "../hooks/useAuth";
@@ -39,6 +40,7 @@ export default function AppLayout() {
     const items = [
         { label: "Dashboard", icon: <DashboardIcon />, to: "/" },
         { label: "Turmas", icon: <SchoolIcon />, to: "/classes" },
+        { label: "Descritores", icon: <RuleIcon />, to: "/descriptors" },
     ];
 
     // Drawer fica colapsado automaticamente no mobile

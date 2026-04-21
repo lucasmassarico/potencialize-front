@@ -13,6 +13,8 @@ import ClassAssessments from "../pages/classes/tabs/ClassAssessments.tsx";
 import ClassStudents from "../pages/classes/tabs/ClassStudents.tsx";
 import ClassOverview from "../pages/classes/tabs/ClassOverview.tsx";
 
+import DescriptorsList from "../pages/descriptors/DescriptorsList";
+
 import AssessmentDetail from "../pages/assessments/AssessmentDetail";
 import AssessmentOverview from "../pages/assessments/tabs/AssessmentOverview";
 import AssessmentMatrix from "../pages/assessments/tabs/AssessmentMatrix";
@@ -30,6 +32,7 @@ const router = createBrowserRouter([
                 element: <AppLayout />,
                 children: [
                     { index: true, element: <Dashboard /> },
+                    { path: "descriptors", element: <DescriptorsList /> },
                     { path: "classes", element: <ClassesList /> },
                     {
                         path: "classes/:id",

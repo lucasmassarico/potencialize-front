@@ -32,6 +32,20 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function extractTeacherId(
+    role: Role | undefined,
+    sub: unknown
+): number | undefined {
+    if (role !== "teacher") return undefined;
+    const n =
+        typeof sub === "number"
+            ? sub
+            : typeof sub === "string"
+            ? parseInt(sub, 10)
+            : NaN;
+    return Number.isFinite(n) ? n : undefined;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<UserInfo | null>(null);
     const [loading, setLoading] = useState(true);
@@ -56,12 +70,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         setAccessToken(access_token);
                         const claims = decodeJwt<{
                             role?: Role;
+                            sub?: string | number;
                             teacher_id?: number;
                         }>(access_token);
                         if (claims?.role) {
                             setUser({
                                 role: claims.role,
-                                teacher_id: claims.teacher_id,
+                                teacher_id:
+                                    claims.teacher_id ??
+                                    extractTeacherId(claims.role, claims.sub),
                             });
                         } else {
                             // Fallback mínimo: mantém usuário genérico autenticado (se prefrir, chame /auth/me)
@@ -74,12 +91,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setAccessToken(access_token);
                     const claims = decodeJwt<{
                         role?: Role;
+                        sub?: string | number;
                         teacher_id?: number;
                     }>(access_token);
                     if (claims?.role)
                         setUser({
                             role: claims.role,
-                            teacher_id: claims.teacher_id,
+                            teacher_id:
+                                claims.teacher_id ??
+                                extractTeacherId(claims.role, claims.sub),
                         });
                 }
             } catch (_) {
@@ -94,7 +114,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data: LoginResponse = await AuthAPI.login(payload);
         setAccessToken(data.access_token);
         setRefreshToken(data.refresh_token);
-        setUser({ role: data.role, teacher_id: data.teacher_id });
+        const claims = decodeJwt<{
+            role?: Role;
+            sub?: string | number;
+            teacher_id?: number;
+        }>(data.access_token);
+        setUser({
+            role: data.role,
+            teacher_id:
+                data.teacher_id ??
+                claims?.teacher_id ??
+                extractTeacherId(data.role, claims?.sub),
+        });
     }, []);
 
     const doLogout = useCallback(async () => {
