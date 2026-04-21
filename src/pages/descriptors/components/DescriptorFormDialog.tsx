@@ -34,7 +34,8 @@ const schema = z.object({
         .transform((v) => (v === "" || v === undefined ? undefined : (v as number))),
 });
 
-type FormValues = z.infer<typeof schema>;
+type FormInput = z.input<typeof schema>;
+type FormValues = z.output<typeof schema>;
 
 interface Props {
     open: boolean;
@@ -54,7 +55,7 @@ export default function DescriptorFormDialog({ open, initial, currentRole, onClo
         handleSubmit,
         reset,
         formState: { errors, isSubmitting },
-    } = useForm<FormValues>({
+    } = useForm<FormInput, unknown, FormValues>({
         resolver: zodResolver(schema),
         defaultValues: {
             code: initial?.code || "",

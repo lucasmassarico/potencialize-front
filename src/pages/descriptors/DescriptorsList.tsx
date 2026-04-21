@@ -142,7 +142,7 @@ export default function DescriptorsList() {
 
     const [q, setQ] = React.useState("");
     const [area, setArea] = React.useState("");
-    const [gradeYear, setGradeYear] = React.useState<number | "">("");
+    const [gradeYear, setGradeYear] = React.useState("");
     const [sort, setSort] = React.useState<SortOption>("-id");
     const [byTeacher, setByTeacher] = React.useState<TeacherOut | null>(null);
 
@@ -274,11 +274,11 @@ export default function DescriptorsList() {
                                 labelId="year-label"
                                 label="Ano"
                                 value={gradeYear}
-                                onChange={(e) => setGradeYear(e.target.value === "" ? "" : Number(e.target.value))}
+                                onChange={(e) => setGradeYear(e.target.value)}
                             >
                                 <MenuItem value="">Todos</MenuItem>
                                 {YEARS.map((y) => (
-                                    <MenuItem key={y} value={y}>
+                                    <MenuItem key={y} value={String(y)}>
                                         {y}º ano
                                     </MenuItem>
                                 ))}
