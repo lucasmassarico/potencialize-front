@@ -20,12 +20,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createDescriptor, updateDescriptor } from "../../../api/descriptors";
 import type { DescriptorCreate, DescriptorOut } from "../../../types/descriptors";
 
+const DESCRIPTOR_CODE_REGEX = /^EF\.(?:\d{2}|\d[aA]\d|\d[eE]\d)\.[A-Z]{2,4}\.\d{1,2}\.\d{2,3}$/;
+
 const schema = z.object({
     code: z
         .string()
         .min(1, "Informe o código")
-        .max(16, "Máx. 16 caracteres"),
-    title: z.string().min(1, "Informe o título").max(200, "Máx. 200 caracteres"),
+        .max(32, "Máx. 32 caracteres")
+        .regex(
+            DESCRIPTOR_CODE_REGEX,
+            "Formato inválido. Ex.: EF.1a5.MAT.1.01",
+        ),
+    title: z.string().min(1, "Informe o título").max(255, "Máx. 255 caracteres"),
     description: z.string().max(2000, "Máx. 2000 caracteres").optional(),
     area: z.string().max(80, "Máx. 80 caracteres").optional(),
     grade_year: z
@@ -85,7 +91,7 @@ export default function DescriptorFormDialog({ open, initial, currentRole, onClo
         setErrMsg(null);
         try {
             const payload: DescriptorCreate = {
-                code: values.code.trim().toUpperCase(),
+                code: values.code.trim(),
                 title: values.title.trim(),
                 description: values.description?.trim() || undefined,
                 area: values.area?.trim() || undefined,
@@ -133,12 +139,14 @@ export default function DescriptorFormDialog({ open, initial, currentRole, onClo
                     <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                         <TextField
                             label="Código"
-                            placeholder="Ex.: D1"
-                            sx={{ maxWidth: { sm: 160 } }}
-                            inputProps={{ style: { textTransform: "uppercase" } }}
+                            placeholder="Ex.: EF.1a5.MAT.1.01"
+                            sx={{ minWidth: { sm: 240 } }}
                             {...register("code")}
                             error={!!errors.code}
-                            helperText={errors.code?.message}
+                            helperText={
+                                errors.code?.message ||
+                                "Formato: EF.<etapa>.<disciplina>.<eixo>.<posição>"
+                            }
                         />
                         <TextField
                             label="Título"

@@ -3,42 +3,6 @@
     "basePath": "/api/v1",
     "paths": {
         "/assessments/": {
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/AssessmentOut"
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validação"
-                    },
-                    "404": {
-                        "description": "Não encontrado"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    }
-                },
-                "operationId": "get_assessment_list",
-                "parameters": [
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["assessments"]
-            },
             "post": {
                 "responses": {
                     "201": {
@@ -70,6 +34,42 @@
                             "$ref": "#/definitions/AssessmentCreate"
                         }
                     },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["assessments"]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/AssessmentOut"
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "get_assessment_list",
+                "parameters": [
                     {
                         "name": "X-Fields",
                         "in": "header",
@@ -457,6 +457,35 @@
             }
         },
         "/classes/": {
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/ClassOut"
+                        }
+                    }
+                },
+                "operationId": "post_class_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/ClassCreate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["classes"]
+            },
             "get": {
                 "responses": {
                     "200": {
@@ -486,35 +515,6 @@
                 "security": [
                     {
                         "Bearer": []
-                    }
-                ],
-                "tags": ["classes"]
-            },
-            "post": {
-                "responses": {
-                    "201": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/ClassOut"
-                        }
-                    }
-                },
-                "operationId": "post_class_list",
-                "parameters": [
-                    {
-                        "name": "payload",
-                        "required": true,
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/ClassCreate"
-                        }
-                    },
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
                     }
                 ],
                 "tags": ["classes"]
@@ -591,6 +591,35 @@
             }
         },
         "/descriptors/": {
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/DescriptorOut"
+                        }
+                    }
+                },
+                "operationId": "post_descriptor_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/DescriptorCreate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["descriptors"]
+            },
             "get": {
                 "responses": {
                     "200": {
@@ -621,7 +650,7 @@
                         "in": "query"
                     },
                     {
-                        "description": "Filtro exato ou pattern (use % na querystring) p/ code",
+                        "description": "Filtro exato ou pattern por codigo completo do descritor (use % na querystring)",
                         "name": "code",
                         "type": "string",
                         "in": "query"
@@ -661,35 +690,6 @@
                         "name": "by_teacher_id",
                         "type": "string",
                         "in": "query"
-                    },
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["descriptors"]
-            },
-            "post": {
-                "responses": {
-                    "201": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/DescriptorOut"
-                        }
-                    }
-                },
-                "operationId": "post_descriptor_list",
-                "parameters": [
-                    {
-                        "name": "payload",
-                        "required": true,
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/DescriptorCreate"
-                        }
                     },
                     {
                         "name": "X-Fields",
@@ -784,6 +784,41 @@
             }
         },
         "/questions/": {
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Criado"
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "post_question_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/QuestionCreate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["questions"]
+            },
             "get": {
                 "responses": {
                     "200": {
@@ -843,41 +878,6 @@
                         "name": "sort",
                         "type": "string",
                         "in": "query"
-                    },
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["questions"]
-            },
-            "post": {
-                "responses": {
-                    "201": {
-                        "description": "Criado"
-                    },
-                    "422": {
-                        "description": "Validação"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    }
-                },
-                "operationId": "post_question_list",
-                "parameters": [
-                    {
-                        "name": "payload",
-                        "required": true,
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/QuestionCreate"
-                        }
                     },
                     {
                         "name": "X-Fields",
@@ -1130,36 +1130,6 @@
             }
         },
         "/student-answers/": {
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/StudentAnswerOut"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    }
-                },
-                "operationId": "get_student_answer_list",
-                "parameters": [
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["student-answers"]
-            },
             "post": {
                 "responses": {
                     "201": {
@@ -1191,6 +1161,36 @@
                             "$ref": "#/definitions/StudentAnswerCreate"
                         }
                     },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["student-answers"]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/StudentAnswerOut"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "get_student_answer_list",
+                "parameters": [
                     {
                         "name": "X-Fields",
                         "in": "header",
@@ -1346,6 +1346,35 @@
             }
         },
         "/students/": {
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/StudentOut"
+                        }
+                    }
+                },
+                "operationId": "post_student_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/StudentCreate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["students"]
+            },
             "get": {
                 "responses": {
                     "200": {
@@ -1393,35 +1422,6 @@
                         "name": "sort",
                         "type": "string",
                         "in": "query"
-                    },
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["students"]
-            },
-            "post": {
-                "responses": {
-                    "201": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/StudentOut"
-                        }
-                    }
-                },
-                "operationId": "post_student_list",
-                "parameters": [
-                    {
-                        "name": "payload",
-                        "required": true,
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/StudentCreate"
-                        }
                     },
                     {
                         "name": "X-Fields",
@@ -1621,6 +1621,44 @@
             }
         },
         "/teachers/": {
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Criado"
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "409": {
+                        "description": "E-mail já utilizado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "post_teacher_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/TeacherCreate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["teachers"]
+            },
             "get": {
                 "responses": {
                     "200": {
@@ -1671,44 +1709,6 @@
                         "name": "sort",
                         "type": "string",
                         "in": "query"
-                    },
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["teachers"]
-            },
-            "post": {
-                "responses": {
-                    "201": {
-                        "description": "Criado"
-                    },
-                    "422": {
-                        "description": "Validação"
-                    },
-                    "409": {
-                        "description": "E-mail já utilizado"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    }
-                },
-                "operationId": "post_teacher_list",
-                "parameters": [
-                    {
-                        "name": "payload",
-                        "required": true,
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/TeacherCreate"
-                        }
                     },
                     {
                         "name": "X-Fields",
@@ -1883,6 +1883,23 @@
             },
             "type": "object"
         },
+        "StudentOut": {
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "register_code": {
+                    "type": "string"
+                },
+                "class_id": {
+                    "type": "integer"
+                }
+            },
+            "type": "object"
+        },
         "StudentList": {
             "properties": {
                 "items": {
@@ -1908,23 +1925,6 @@
                 },
                 "has_prev": {
                     "type": "boolean"
-                }
-            },
-            "type": "object"
-        },
-        "StudentOut": {
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "register_code": {
-                    "type": "string"
-                },
-                "class_id": {
-                    "type": "integer"
                 }
             },
             "type": "object"
@@ -2166,7 +2166,8 @@
                 },
                 "date": {
                     "type": "string",
-                    "format": "date-time"
+                    "format": "date",
+                    "description": "YYYY-MM-DD"
                 },
                 "weight_mode": {
                     "type": "string",
@@ -2213,7 +2214,8 @@
                 },
                 "date": {
                     "type": "string",
-                    "format": "date-time"
+                    "format": "date",
+                    "description": "YYYY-MM-DD"
                 },
                 "weight_mode": {
                     "type": "string",
@@ -2262,7 +2264,8 @@
                         },
                         "date": {
                             "type": "string",
-                            "format": "date-time"
+                            "format": "date",
+                            "description": "YYYY-MM-DD"
                         },
                         "weight_mode": {
                             "type": "string",
@@ -2593,7 +2596,9 @@
             "properties": {
                 "code": {
                     "type": "string",
-                    "description": "Ex.: D1"
+                    "description": "Codigo completo do descritor (ex. EF.1a5.MAT.1.01), incluindo etapa, faixa/ano, disciplina, eixo e posicao.",
+                    "example": "EF.1a5.MAT.1.01",
+                    "pattern": "^EF\\.(?:\\d{2}|\\d[aA]\\d|\\d[eE]\\d)\\.[A-Z]{2,4}\\.\\d{1,2}\\.\\d{2,3}$"
                 },
                 "title": {
                     "type": "string"
@@ -2606,6 +2611,36 @@
                 },
                 "grade_year": {
                     "type": "integer"
+                }
+            },
+            "type": "object"
+        },
+        "DescriptorOut": {
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "code": {
+                    "type": "string",
+                    "description": "Codigo completo do descritor (ex. EF.1a5.MAT.1.01), incluindo etapa, faixa/ano, disciplina, eixo e posicao.",
+                    "example": "EF.1a5.MAT.1.01",
+                    "pattern": "^EF\\.(?:\\d{2}|\\d[aA]\\d|\\d[eE]\\d)\\.[A-Z]{2,4}\\.\\d{1,2}\\.\\d{2,3}$"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "area": {
+                    "type": "string"
+                },
+                "grade_year": {
+                    "type": "integer"
+                },
+                "owner_teacher_id": {
+                    "type": "integer",
+                    "description": "NULL para globais"
                 }
             },
             "type": "object"
@@ -2639,38 +2674,13 @@
             },
             "type": "object"
         },
-        "DescriptorOut": {
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "code": {
-                    "type": "string",
-                    "example": "D1"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "area": {
-                    "type": "string"
-                },
-                "grade_year": {
-                    "type": "integer"
-                },
-                "owner_teacher_id": {
-                    "type": "integer",
-                    "description": "NULL para globais"
-                }
-            },
-            "type": "object"
-        },
         "DescriptorUpdate": {
             "properties": {
                 "code": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Codigo completo do descritor (ex. EF.1a5.MAT.1.01), incluindo etapa, faixa/ano, disciplina, eixo e posicao.",
+                    "example": "EF.1a5.MAT.1.01",
+                    "pattern": "^EF\\.(?:\\d{2}|\\d[aA]\\d|\\d[eE]\\d)\\.[A-Z]{2,4}\\.\\d{1,2}\\.\\d{2,3}$"
                 },
                 "title": {
                     "type": "string"

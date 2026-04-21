@@ -86,7 +86,7 @@ function subjectLabel(kind?: string, other?: string | null) {
 /** Card clicável (mobile/tablet) */
 function AssessmentCard({ a, onEdit, onDelete }: { a: AssessmentOut; onEdit: (a: AssessmentOut) => void; onDelete: (a: AssessmentOut) => void }) {
     const nav = useNavigate();
-    const dateLabel = dayjs(a.date).format("DD/MM/YYYY HH:mm");
+    const dateLabel = dayjs(a.date).format("DD/MM/YYYY");
 
     return (
         <Card variant="outlined" sx={{ height: "100%" }}>
@@ -347,7 +347,7 @@ export default function ClassAssessments() {
                                                     </TableCell>
 
                                                     <TableCell>
-                                                        <time dateTime={dayjs(a.date).toISOString()}>{dayjs(a.date).format("DD/MM/YYYY HH:mm")}</time>
+                                                        <time dateTime={dayjs(a.date).format("YYYY-MM-DD")}>{dayjs(a.date).format("DD/MM/YYYY")}</time>
                                                     </TableCell>
 
                                                     <TableCell>
