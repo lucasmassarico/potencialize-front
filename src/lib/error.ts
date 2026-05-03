@@ -10,11 +10,11 @@ export type NormalizedError = {
 
 export function normalizeAxiosError(err: unknown): NormalizedError {
     if (!axios.isAxiosError(err)) {
-        const msg = (err as any)?.message ?? "Ocorreu um erro inesperado. Tente novamente.";
+        const msg = (err as { message?: string })?.message ?? "Ocorreu um erro inesperado. Tente novamente.";
         return { message: msg };
     }
 
-    const e = err as AxiosError<any>;
+    const e = err as AxiosError<{ message?: string; msg?: string; detail?: string; error?: string; details?: unknown; errors?: unknown }>;
     const status = e.response?.status;
     const data = e.response?.data;
 

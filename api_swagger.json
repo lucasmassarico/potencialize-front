@@ -3,6 +3,42 @@
     "basePath": "/api/v1",
     "paths": {
         "/assessments/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/AssessmentOut"
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "get_assessment_list",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["assessments"]
+            },
             "post": {
                 "responses": {
                     "201": {
@@ -43,42 +79,6 @@
                     }
                 ],
                 "tags": ["assessments"]
-            },
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/AssessmentOut"
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validação"
-                    },
-                    "404": {
-                        "description": "Não encontrado"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    }
-                },
-                "operationId": "get_assessment_list",
-                "parameters": [
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["assessments"]
             }
         },
         "/assessments/{assessment_id}": {
@@ -107,6 +107,39 @@
                     }
                 },
                 "operationId": "delete_assessment_detail",
+                "tags": ["assessments"]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/AssessmentOut"
+                        }
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "get_assessment_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
                 "tags": ["assessments"]
             },
             "put": {
@@ -140,39 +173,6 @@
                             "$ref": "#/definitions/AssessmentUpdate"
                         }
                     },
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["assessments"]
-            },
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/AssessmentOut"
-                        }
-                    },
-                    "422": {
-                        "description": "Validação"
-                    },
-                    "404": {
-                        "description": "Não encontrado"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    }
-                },
-                "operationId": "get_assessment_detail",
-                "parameters": [
                     {
                         "name": "X-Fields",
                         "in": "header",
@@ -284,6 +284,28 @@
                     "type": "integer"
                 }
             ],
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/AssessmentGradingPolicyOut"
+                        }
+                    }
+                },
+                "summary": "Obtém a política de classificação desta avaliação (ou defaults)",
+                "operationId": "get_assessment_grading_policy",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["assessments"]
+            },
             "put": {
                 "responses": {
                     "200": {
@@ -313,28 +335,6 @@
                     }
                 ],
                 "tags": ["assessments"]
-            },
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/AssessmentGradingPolicyOut"
-                        }
-                    }
-                },
-                "summary": "Obtém a política de classificação desta avaliação (ou defaults)",
-                "operationId": "get_assessment_grading_policy",
-                "parameters": [
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["assessments"]
             }
         },
         "/assessments/{assessment_id}/skills-weights": {
@@ -346,6 +346,28 @@
                     "type": "integer"
                 }
             ],
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/AssessmentSkillWeightsOut"
+                        }
+                    }
+                },
+                "summary": "Obtém os pesos por nível (BY_SKILL) da avaliação",
+                "operationId": "get_assessment_skill_weights",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["assessments"]
+            },
             "put": {
                 "responses": {
                     "200": {
@@ -367,28 +389,6 @@
                             "$ref": "#/definitions/AssessmentSkillWeightsIn"
                         }
                     },
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["assessments"]
-            },
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/AssessmentSkillWeightsOut"
-                        }
-                    }
-                },
-                "summary": "Obtém os pesos por nível (BY_SKILL) da avaliação",
-                "operationId": "get_assessment_skill_weights",
-                "parameters": [
                     {
                         "name": "X-Fields",
                         "in": "header",
@@ -457,35 +457,6 @@
             }
         },
         "/classes/": {
-            "post": {
-                "responses": {
-                    "201": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/ClassOut"
-                        }
-                    }
-                },
-                "operationId": "post_class_list",
-                "parameters": [
-                    {
-                        "name": "payload",
-                        "required": true,
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/ClassCreate"
-                        }
-                    },
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["classes"]
-            },
             "get": {
                 "responses": {
                     "200": {
@@ -518,6 +489,35 @@
                     }
                 ],
                 "tags": ["classes"]
+            },
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/ClassOut"
+                        }
+                    }
+                },
+                "operationId": "post_class_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/ClassCreate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["classes"]
             }
         },
         "/classes/{class_id}": {
@@ -537,6 +537,27 @@
                     }
                 },
                 "operationId": "delete_class_detail",
+                "tags": ["classes"]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/ClassOut"
+                        }
+                    }
+                },
+                "operationId": "get_class_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
                 "tags": ["classes"]
             },
             "put": {
@@ -567,59 +588,9 @@
                     }
                 ],
                 "tags": ["classes"]
-            },
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/ClassOut"
-                        }
-                    }
-                },
-                "operationId": "get_class_detail",
-                "parameters": [
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["classes"]
             }
         },
         "/descriptors/": {
-            "post": {
-                "responses": {
-                    "201": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/DescriptorOut"
-                        }
-                    }
-                },
-                "operationId": "post_descriptor_list",
-                "parameters": [
-                    {
-                        "name": "payload",
-                        "required": true,
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/DescriptorCreate"
-                        }
-                    },
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["descriptors"]
-            },
             "get": {
                 "responses": {
                     "200": {
@@ -700,6 +671,35 @@
                     }
                 ],
                 "tags": ["descriptors"]
+            },
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/DescriptorOut"
+                        }
+                    }
+                },
+                "operationId": "post_descriptor_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/DescriptorCreate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["descriptors"]
             }
         },
         "/descriptors/{descriptor_id}": {
@@ -719,6 +719,27 @@
                     }
                 },
                 "operationId": "delete_descriptor_detail",
+                "tags": ["descriptors"]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/DescriptorOut"
+                        }
+                    }
+                },
+                "operationId": "get_descriptor_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
                 "tags": ["descriptors"]
             },
             "put": {
@@ -749,27 +770,6 @@
                     }
                 ],
                 "tags": ["descriptors"]
-            },
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/DescriptorOut"
-                        }
-                    }
-                },
-                "operationId": "get_descriptor_detail",
-                "parameters": [
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["descriptors"]
             }
         },
         "/healthz/": {
@@ -784,41 +784,6 @@
             }
         },
         "/questions/": {
-            "post": {
-                "responses": {
-                    "201": {
-                        "description": "Criado"
-                    },
-                    "422": {
-                        "description": "Validação"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    }
-                },
-                "operationId": "post_question_list",
-                "parameters": [
-                    {
-                        "name": "payload",
-                        "required": true,
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/QuestionCreate"
-                        }
-                    },
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["questions"]
-            },
             "get": {
                 "responses": {
                     "200": {
@@ -878,6 +843,41 @@
                         "name": "sort",
                         "type": "string",
                         "in": "query"
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["questions"]
+            },
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Criado"
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "post_question_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/QuestionCreate"
+                        }
                     },
                     {
                         "name": "X-Fields",
@@ -1006,6 +1006,36 @@
                 "operationId": "delete_question_detail",
                 "tags": ["questions"]
             },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/QuestionOut"
+                        }
+                    },
+                    "404": {
+                        "description": "Não encontrada"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "get_question_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["questions"]
+            },
             "put": {
                 "responses": {
                     "200": {
@@ -1034,36 +1064,6 @@
                             "$ref": "#/definitions/QuestionUpdate"
                         }
                     },
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["questions"]
-            },
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/QuestionOut"
-                        }
-                    },
-                    "404": {
-                        "description": "Não encontrada"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    }
-                },
-                "operationId": "get_question_detail",
-                "parameters": [
                     {
                         "name": "X-Fields",
                         "in": "header",
@@ -1130,6 +1130,36 @@
             }
         },
         "/student-answers/": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/StudentAnswerOut"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "get_student_answer_list",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["student-answers"]
+            },
             "post": {
                 "responses": {
                     "201": {
@@ -1161,36 +1191,6 @@
                             "$ref": "#/definitions/StudentAnswerCreate"
                         }
                     },
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["student-answers"]
-            },
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/StudentAnswerOut"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    }
-                },
-                "operationId": "get_student_answer_list",
-                "parameters": [
                     {
                         "name": "X-Fields",
                         "in": "header",
@@ -1273,6 +1273,36 @@
                 "operationId": "delete_student_answer_detail",
                 "tags": ["student-answers"]
             },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/StudentAnswerOut"
+                        }
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "get_student_answer_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["student-answers"]
+            },
             "put": {
                 "responses": {
                     "200": {
@@ -1313,68 +1343,9 @@
                     }
                 ],
                 "tags": ["student-answers"]
-            },
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/StudentAnswerOut"
-                        }
-                    },
-                    "404": {
-                        "description": "Não encontrado"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    }
-                },
-                "operationId": "get_student_answer_detail",
-                "parameters": [
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["student-answers"]
             }
         },
         "/students/": {
-            "post": {
-                "responses": {
-                    "201": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/StudentOut"
-                        }
-                    }
-                },
-                "operationId": "post_student_list",
-                "parameters": [
-                    {
-                        "name": "payload",
-                        "required": true,
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/StudentCreate"
-                        }
-                    },
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["students"]
-            },
             "get": {
                 "responses": {
                     "200": {
@@ -1422,6 +1393,35 @@
                         "name": "sort",
                         "type": "string",
                         "in": "query"
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["students"]
+            },
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/StudentOut"
+                        }
+                    }
+                },
+                "operationId": "post_student_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/StudentCreate"
+                        }
                     },
                     {
                         "name": "X-Fields",
@@ -1504,6 +1504,33 @@
                 "operationId": "delete_student_detail",
                 "tags": ["students"]
             },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/StudentOut"
+                        }
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    }
+                },
+                "operationId": "get_student_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["students"]
+            },
             "put": {
                 "responses": {
                     "200": {
@@ -1535,33 +1562,6 @@
                             "$ref": "#/definitions/StudentUpdatePayload"
                         }
                     },
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["students"]
-            },
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/StudentOut"
-                        }
-                    },
-                    "404": {
-                        "description": "Não encontrado"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    }
-                },
-                "operationId": "get_student_detail",
-                "parameters": [
                     {
                         "name": "X-Fields",
                         "in": "header",
@@ -1621,44 +1621,6 @@
             }
         },
         "/teachers/": {
-            "post": {
-                "responses": {
-                    "201": {
-                        "description": "Criado"
-                    },
-                    "422": {
-                        "description": "Validação"
-                    },
-                    "409": {
-                        "description": "E-mail já utilizado"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    }
-                },
-                "operationId": "post_teacher_list",
-                "parameters": [
-                    {
-                        "name": "payload",
-                        "required": true,
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/TeacherCreate"
-                        }
-                    },
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["teachers"]
-            },
             "get": {
                 "responses": {
                     "200": {
@@ -1719,6 +1681,44 @@
                     }
                 ],
                 "tags": ["teachers"]
+            },
+            "post": {
+                "responses": {
+                    "201": {
+                        "description": "Criado"
+                    },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "409": {
+                        "description": "E-mail já utilizado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "post_teacher_list",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/TeacherCreate"
+                        }
+                    },
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["teachers"]
             }
         },
         "/teachers/{teacher_id}": {
@@ -1747,6 +1747,37 @@
                     }
                 },
                 "operationId": "delete_teacher_detail",
+                "tags": ["teachers"]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/TeacherOut"
+                        }
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "description": "Busca um professor pelo ID",
+                "operationId": "get_teacher_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
                 "tags": ["teachers"]
             },
             "put": {
@@ -1780,37 +1811,6 @@
                             "$ref": "#/definitions/TeacherUpdatePayload"
                         }
                     },
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": ["teachers"]
-            },
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/TeacherOut"
-                        }
-                    },
-                    "404": {
-                        "description": "Não encontrado"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    }
-                },
-                "description": "Busca um professor pelo ID",
-                "operationId": "get_teacher_detail",
-                "parameters": [
                     {
                         "name": "X-Fields",
                         "in": "header",
@@ -1883,23 +1883,6 @@
             },
             "type": "object"
         },
-        "StudentOut": {
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "register_code": {
-                    "type": "string"
-                },
-                "class_id": {
-                    "type": "integer"
-                }
-            },
-            "type": "object"
-        },
         "StudentList": {
             "properties": {
                 "items": {
@@ -1925,6 +1908,23 @@
                 },
                 "has_prev": {
                     "type": "boolean"
+                }
+            },
+            "type": "object"
+        },
+        "StudentOut": {
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "register_code": {
+                    "type": "string"
+                },
+                "class_id": {
+                    "type": "integer"
                 }
             },
             "type": "object"
@@ -2615,6 +2615,35 @@
             },
             "type": "object"
         },
+        "DescriptorList": {
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/DescriptorOut"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
+                },
+                "has_next": {
+                    "type": "boolean"
+                },
+                "has_prev": {
+                    "type": "boolean"
+                }
+            },
+            "type": "object"
+        },
         "DescriptorOut": {
             "properties": {
                 "id": {
@@ -2641,35 +2670,6 @@
                 "owner_teacher_id": {
                     "type": "integer",
                     "description": "NULL para globais"
-                }
-            },
-            "type": "object"
-        },
-        "DescriptorList": {
-            "properties": {
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/DescriptorOut"
-                    }
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "per_page": {
-                    "type": "integer"
-                },
-                "total": {
-                    "type": "integer"
-                },
-                "total_pages": {
-                    "type": "integer"
-                },
-                "has_next": {
-                    "type": "boolean"
-                },
-                "has_prev": {
-                    "type": "boolean"
                 }
             },
             "type": "object"

@@ -149,7 +149,7 @@ export default function AssessmentDetail() {
                                 <Chip
                                     size="small"
                                     icon={<MenuBookOutlinedIcon />}
-                                    label={`Disciplina: ${subjectLabel(data.subject_kind as any, data.subject_other)}`}
+                                    label={`Disciplina: ${subjectLabel(data.subject_kind, data.subject_other)}`}
                                     variant="outlined"
                                 />
 

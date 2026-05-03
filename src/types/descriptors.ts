@@ -20,7 +20,7 @@ export interface DescriptorCreate {
     grade_year?: number;
 }
 
-export interface DescriptorUpdate extends DescriptorCreate {}
+export type DescriptorUpdate = DescriptorCreate;
 
 export interface DescriptorList {
     items: DescriptorOut[];

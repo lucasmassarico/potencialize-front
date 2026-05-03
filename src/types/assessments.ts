@@ -42,13 +42,13 @@ export type AssessmentUpdate = Partial<AssessmentCreate>;
 
 // Overview (mantido genérico, como estava)
 export interface AssessmentOverviewDTO {
-    assessment: any;
-    population: any;
-    overall: any;
-    by_skill: Array<any>;
-    by_question: Array<any>;
-    hardest: any;
-    easiest: any;
+    assessment: Record<string, unknown>;
+    population: { students_in_class?: number; students_answered_any?: number; [key: string]: unknown };
+    overall: { total_questions?: number; total_answers?: number; correct?: number; accuracy?: number; [key: string]: unknown };
+    by_skill: Array<{ skill_level?: unknown; questions?: number; answers?: number; correct?: number; accuracy?: number; [key: string]: unknown }>;
+    by_question: Array<{ question_id?: number; answers?: number; correct?: number; accuracy?: number; [key: string]: unknown }>;
+    hardest: unknown;
+    easiest: unknown;
 }
 
 // Matriz

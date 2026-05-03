@@ -9,6 +9,7 @@ import {
     Typography,
     Button,
     Alert,
+    Autocomplete,
     Table,
     TableBody,
     TableCell,
@@ -26,6 +27,7 @@ import {
     useMediaQuery,
     CardActionArea,
     Skeleton,
+    Tooltip,
     Link as MUILink,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -35,6 +37,9 @@ import ReplayIcon from "@mui/icons-material/Replay";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { listQuestions, deleteQuestion } from "../../../api/questions";
 import type { QuestionOut, SkillLevel, Option } from "../../../types/questions";
+import { SKILL_LABEL, SKILL_LEVELS, skillChipColor } from "../../../lib/skillLevels";
+import { useAllDescriptors } from "../../../hooks/useDescriptors";
+import type { DescriptorOut } from "../../../types/descriptors";
 import ConfirmDialog from "../../../components/ConfirmDialog";
 import QuestionFormDialog from "../components/QuestionFormDialog";
 import QuestionsBulkDialog from "../components/QuestionsBulkDialog";
@@ -43,27 +48,7 @@ import { getAssessment } from "../../../api/assessments";
 
 import type { QuestionList } from "../../../types/questions";
 
-const SKILL_OPTS: SkillLevel[] = ["abaixo", "basico", "adequado", "avancado"];
 const OPTION_OPTS: Option[] = ["a", "b", "c", "d", "e"];
-
-const SKILL_LABEL: Record<SkillLevel, string> = {
-    abaixo: "Abaixo do Básico",
-    basico: "Básico",
-    adequado: "Adequado",
-    avancado: "Avançado",
-};
-const skillChipColor = (s: SkillLevel): "error" | "warning" | "info" | "success" => {
-    switch (s) {
-        case "abaixo":
-            return "error";
-        case "basico":
-            return "warning";
-        case "adequado":
-            return "info";
-        case "avancado":
-            return "success";
-    }
-};
 
 function CardsSkeleton() {
     return (
@@ -96,7 +81,7 @@ export default function AssessmentQuestions() {
     const [perPage, setPerPage] = React.useState(20);
     const [skill, setSkill] = React.useState<SkillLevel | "">("");
     const [opt, setOpt] = React.useState<Option | "">("");
-    const [descriptor, setDescriptor] = React.useState<string>("");
+    const [descriptor, setDescriptor] = React.useState<number | null>(null);
 
     // client text filter (debounced)
     const [q, setQ] = React.useState("");
@@ -126,13 +111,21 @@ export default function AssessmentQuestions() {
                 // 👇 só envia o filtro de nível se for by_skill
                 skill_level: isBySkill ? skill || undefined : undefined,
                 correct_option: opt || undefined,
-                descriptor_id: descriptor ? Number(descriptor) : undefined,
+                descriptor_id: descriptor ?? undefined,
                 sort: "id",
             }),
         enabled: !!assessmentId,
         placeholderData: keepPreviousData,
         staleTime: 15_000,
     });
+
+    const { data: descriptors } = useAllDescriptors();
+
+    const descriptorIndex = React.useMemo(() => {
+        const m = new Map<number, DescriptorOut>();
+        (descriptors ?? []).forEach((d) => m.set(d.id, d));
+        return m;
+    }, [descriptors]);
 
     const items = React.useMemo(() => {
         const text = q.trim().toLowerCase();
@@ -181,12 +174,12 @@ export default function AssessmentQuestions() {
                             label="Nível"
                             value={skill}
                             onChange={(e) => {
-                                setSkill(e.target.value as any);
+                                setSkill(e.target.value as SkillLevel | "");
                                 setPage(1);
                             }}
                         >
                             <MenuItem value="">Todos</MenuItem>
-                            {SKILL_OPTS.map((s) => (
+                            {SKILL_LEVELS.map((s) => (
                                 <MenuItem key={s} value={s}>
                                     {SKILL_LABEL[s]}
                                 </MenuItem>
@@ -202,7 +195,7 @@ export default function AssessmentQuestions() {
                         label="Correta"
                         value={opt}
                         onChange={(e) => {
-                            setOpt(e.target.value as any);
+                            setOpt(e.target.value as Option | "");
                             setPage(1);
                         }}
                     >
@@ -234,16 +227,18 @@ export default function AssessmentQuestions() {
                     </Select>
                 </FormControl>
 
-                <TextField
+                <Autocomplete
                     size="small"
-                    type="number"
-                    label="Descritor (ID)"
-                    value={descriptor}
-                    onChange={(e) => {
-                        setDescriptor(e.target.value);
+                    sx={{ width: 240 }}
+                    options={descriptors ?? []}
+                    getOptionLabel={(d) => `${d.code} — ${d.title}`}
+                    isOptionEqualToValue={(a, b) => a.id === b.id}
+                    value={(descriptor !== null ? (descriptors ?? []).find((d) => d.id === descriptor) : null) ?? null}
+                    onChange={(_, val) => {
+                        setDescriptor(val?.id ?? null);
                         setPage(1);
                     }}
-                    sx={{ width: 180 }}
+                    renderInput={(params) => <TextField {...params} label="Descritor" />}
                 />
 
                 {hasAnyFilter && (
@@ -254,7 +249,7 @@ export default function AssessmentQuestions() {
                             setQ("");
                             setSkill("");
                             setOpt("");
-                            setDescriptor("");
+                            setDescriptor(null);
                             setPage(1);
                         }}
                     >
@@ -337,6 +332,12 @@ export default function AssessmentQuestions() {
                                                             {/* 👇 Chip de Peso só quando per_question (opcional, coerência com tabela) */}
                                                             {isPerQuestion && <Chip size="small" label={`Peso ${q.weight}`} />}
                                                             <Chip size="small" variant="outlined" label={`Correta: ${q.correct_option.toUpperCase()}`} />
+                                                            {q.descriptor_id && (() => {
+                                                                const d = descriptorIndex.get(q.descriptor_id);
+                                                                return d
+                                                                    ? <Tooltip title={d.title}><Chip size="small" variant="outlined" label={d.code} /></Tooltip>
+                                                                    : null;
+                                                            })()}
                                                         </Stack>
                                                     </Box>
                                                     <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
@@ -380,7 +381,7 @@ export default function AssessmentQuestions() {
                                                 {isBySkill && <TableCell width={160}>Nível</TableCell>}
                                                 {isPerQuestion && <TableCell width={100}>Peso</TableCell>}
                                                 <TableCell width={120}>Correta</TableCell>
-                                                <TableCell width={130}>Descritor</TableCell>
+                                                <TableCell width={200}>Descritor</TableCell>
                                                 <TableCell align="right" width={120}>
                                                     Ações
                                                 </TableCell>
@@ -458,7 +459,16 @@ export default function AssessmentQuestions() {
                                                     {isPerQuestion && <TableCell>{q.weight}</TableCell>}
 
                                                     <TableCell>{q.correct_option?.toUpperCase()}</TableCell>
-                                                    <TableCell>{q.descriptor_id ?? "—"}</TableCell>
+                                                    <TableCell>
+                                                        {q.descriptor_id
+                                                            ? (() => {
+                                                                const d = descriptorIndex.get(q.descriptor_id);
+                                                                return d
+                                                                    ? <Tooltip title={d.code}><span>{d.title}</span></Tooltip>
+                                                                    : <span>—</span>;
+                                                            })()
+                                                            : "—"}
+                                                    </TableCell>
                                                     <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                                                         <IconButton
                                                             aria-label="editar"

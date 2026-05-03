@@ -31,4 +31,4 @@ export interface QuestionCreate {
     descriptor_id?: number | null;
 }
 
-export interface QuestionUpdate extends Omit<QuestionOut, "id"> {}
+export type QuestionUpdate = Omit<QuestionOut, "id">;

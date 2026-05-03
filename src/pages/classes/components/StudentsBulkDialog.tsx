@@ -48,8 +48,8 @@ export default function StudentsBulkDialog({ open, classId, onClose }: Props) {
             setSubmitting(true);
             await bulkCreateStudents({ class_id: classId, items: parsed });
             onClose(true);
-        } catch (e: any) {
-            const msg = e?.response?.data?.message || "Falha na importação.";
+        } catch (e: unknown) {
+            const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Falha na importação.";
             setErr(msg);
         } finally {
             setSubmitting(false);

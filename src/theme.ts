@@ -5,12 +5,14 @@ import "@fontsource/inter/400.css";
 import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 
-const t = tokens as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const t = tokens as Record<string, any>;
 
 const resolve = (path: string, mode: "light" | "dark") => {
     if (!path || !path.startsWith("{")) return path;
     const keys = path.slice(1, -1).split(".");
-    let cur: any = t.modes[mode];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let cur: Record<string, any> = t.modes[mode];
     for (const k of keys) cur = cur?.[k];
     return cur ?? path;
 };
@@ -104,7 +106,7 @@ export const theme = createTheme({
         MuiButton: {
             defaultProps: { disableElevation: true },
             styleOverrides: {
-                root: ({}) => ({
+                root: () => ({
                     borderRadius: t.modes.light.radius.sm,
                     fontWeight: 600,
                     textTransform: "none",

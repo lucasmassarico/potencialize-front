@@ -106,7 +106,7 @@ function AssessmentCard({ a, onEdit, onDelete }: { a: AssessmentOut; onEdit: (a:
                             size="small"
                             variant="outlined"
                             icon={<MenuBookOutlinedIcon />}
-                            label={subjectLabel((a as any).subject_kind, (a as any).subject_other)}
+                            label={subjectLabel(a.subject_kind, a.subject_other)}
                         />
                     </Stack>
                 </Box>
@@ -366,7 +366,7 @@ export default function ClassAssessments() {
                                                             size="small"
                                                             variant="outlined"
                                                             icon={<MenuBookOutlinedIcon />}
-                                                            label={subjectLabel((a as any).subject_kind, (a as any).subject_other)}
+                                                            label={subjectLabel(a.subject_kind, a.subject_other)}
                                                             onClick={(e) => e.stopPropagation()}
                                                         />
                                                     </TableCell>

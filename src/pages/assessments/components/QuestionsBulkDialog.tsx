@@ -1,117 +1,32 @@
-// src/pages/assessments/components/QuestionsBulkDialog.tsx
 import React from "react";
 import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-    Stack,
-    TextField,
     Alert,
-    Typography,
-    Table,
-    TableHead,
-    TableRow,
-    TableCell,
-    TableBody,
-    Checkbox,
-    FormControlLabel,
-    TableContainer,
-    Paper,
+    Box,
+    Button,
     Chip,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Stack,
+    Tab,
+    Tabs,
+    Typography,
 } from "@mui/material";
-import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
 import { bulkCreateQuestionsByAssessment } from "../../../api/questions";
-import type { QuestionCreate } from "../../../types/questions";
-import type { DescriptorOut } from "../../../types/descriptors";
+import { getAssessment } from "../../../api/assessments";
 import { useAllDescriptors } from "../../../hooks/useDescriptors";
-
-const rowSchema = z.object({
-    text: z.string().min(1),
-    skill_level: z.enum(["abaixo", "basico", "adequado", "avancado"]),
-    weight: z.coerce.number().positive(),
-    correct_option: z.enum(["a", "b", "c", "d", "e"]),
-    descriptor_code: z.string().optional(),
-});
-
-type ParsedRow = Omit<QuestionCreate, "assessment_id" | "descriptor_id"> & {
-    descriptor_code?: string;
-    descriptor_id: number | null;
-};
-
-function buildCodeIndex(descriptors: DescriptorOut[] | undefined) {
-    const map = new Map<string, DescriptorOut>();
-    (descriptors ?? []).forEach((d) => map.set(d.code.toLowerCase(), d));
-    return map;
-}
-
-function parseRows(
-    raw: string,
-    forceHeader: boolean,
-    codeIndex: Map<string, DescriptorOut>,
-) {
-    const lines = raw
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter(Boolean);
-    if (!lines.length) return { items: [] as ParsedRow[], errors: [] as string[] };
-
-    const first = lines[0].toLowerCase();
-    const autoHasHeader = ["text", "skill_level", "weight", "correct_option"].every((h) => first.includes(h));
-    const hasHeader = forceHeader || autoHasHeader;
-
-    const dataLines = hasHeader ? lines.slice(1) : lines;
-    const errors: string[] = [];
-    const items: ParsedRow[] = [];
-
-    dataLines.forEach((line, i) => {
-        const parts = line.split(/;|\t|,/).map((p) => p.trim());
-        if (parts.length < 4) {
-            errors.push(`Linha ${i + 1}: mínimo 4 campos (text;skill_level;weight;correct_option[;descriptor_code])`);
-            return;
-        }
-        const [text, skill_level, weight, correct_option, descriptor_code] = parts;
-        const parsed = rowSchema.safeParse({
-            text,
-            skill_level,
-            weight,
-            correct_option,
-            descriptor_code:
-                descriptor_code && descriptor_code.trim() !== "" ? descriptor_code.trim() : undefined,
-        });
-        if (!parsed.success) {
-            const detail = parsed.error.issues
-                .map((x) => `${x.path.join(".") || "campo"}: ${x.message}`)
-                .join("; ");
-            errors.push(`Linha ${i + 1}: ${detail}`);
-            return;
-        }
-
-        let descriptor_id: number | null = null;
-        if (parsed.data.descriptor_code) {
-            const found = codeIndex.get(parsed.data.descriptor_code.toLowerCase());
-            if (!found) {
-                errors.push(
-                    `Linha ${i + 1}: descritor com código "${parsed.data.descriptor_code}" não encontrado.`,
-                );
-                return;
-            }
-            descriptor_id = found.id;
-        }
-
-        items.push({
-            text: parsed.data.text,
-            skill_level: parsed.data.skill_level,
-            weight: parsed.data.weight,
-            correct_option: parsed.data.correct_option,
-            descriptor_code: parsed.data.descriptor_code,
-            descriptor_id,
-        });
-    });
-
-    return { items, errors };
-}
+import { createEmptyDraft, validateAndResolve } from "../../../lib/questionsBulk/parse";
+import type {
+    BulkRowDraft,
+    BulkRowError,
+    WeightMode,
+} from "../../../lib/questionsBulk/parse";
+import QuestionsBulkTable from "./bulk/QuestionsBulkTable";
+import QuestionsBulkUpload from "./bulk/QuestionsBulkUpload";
+import QuestionsBulkPaste from "./bulk/QuestionsBulkPaste";
+import QuestionsBulkErrors from "./bulk/QuestionsBulkErrors";
 
 interface Props {
     open: boolean;
@@ -119,173 +34,164 @@ interface Props {
     onClose: (imported: boolean) => void;
 }
 
-export default function QuestionsBulkDialog({ open, assessmentId, onClose }: Props) {
-    const [raw, setRaw] = React.useState("");
-    const [errMsg, setErrMsg] = React.useState<string | null>(null);
-    const [preview, setPreview] = React.useState<ParsedRow[]>([]);
-    const [parseErrors, setParseErrors] = React.useState<string[]>([]);
-    const [submitting, setSubmitting] = React.useState(false);
-    const [forceHeader, setForceHeader] = React.useState(true);
+type TabKey = "table" | "upload" | "paste";
 
-    const { data: allDescriptors, isLoading: loadingDescriptors } = useAllDescriptors();
-    const codeIndex = React.useMemo(() => buildCodeIndex(allDescriptors), [allDescriptors]);
+export default function QuestionsBulkDialog({ open, assessmentId, onClose }: Props) {
+    const [tab, setTab] = React.useState<TabKey>("table");
+    const [drafts, setDrafts] = React.useState<BulkRowDraft[]>([]);
+    const [submitErr, setSubmitErr] = React.useState<string | null>(null);
+    const [submitting, setSubmitting] = React.useState(false);
+    const [focusedRow, setFocusedRow] = React.useState<number | null>(null);
+
+    const { data: assess } = useQuery({
+        queryKey: ["assessment-meta", assessmentId],
+        queryFn: () => getAssessment(Number(assessmentId), "id,title,weight_mode"),
+        enabled: !!assessmentId && open,
+        staleTime: 30_000,
+    });
+
+    const { data: descriptors, isLoading: loadingDescriptors } = useAllDescriptors();
+
+    const weightMode: WeightMode = assess?.weight_mode;
 
     React.useEffect(() => {
-        if (!open) {
-            setRaw("");
-            setPreview([]);
-            setParseErrors([]);
-            setErrMsg(null);
-            setForceHeader(true);
+        if (open) {
+            setDrafts((prev) => (prev.length === 0 ? [createEmptyDraft()] : prev));
+            return;
         }
+        setTab("table");
+        setDrafts([]);
+        setSubmitErr(null);
+        setSubmitting(false);
+        setFocusedRow(null);
     }, [open]);
 
-    const fillExample = () => {
-        const sample = allDescriptors?.[0]?.code ?? "EF.1a5.MAT.1.01";
-        setRaw(
-            `text;skill_level;weight;correct_option;descriptor_code
-Quanto é 2+2?;basico;1;a;${sample}
-Problema de multiplicação;adequado;1.5;c;
-Questão avançada;avancado;2;e;`
-        );
-    };
+    const { items, errors } = React.useMemo(() => {
+        if (!drafts.length) return { items: [], errors: [] as BulkRowError[] };
+        return validateAndResolve(drafts, assessmentId, { weightMode, descriptors });
+    }, [drafts, assessmentId, weightMode, descriptors]);
 
-    const handleParse = () => {
-        const { items, errors } = parseRows(raw, forceHeader, codeIndex);
-        setPreview(items);
-        setParseErrors(errors);
+    const errorsByRow = React.useMemo(() => {
+        const m = new Map<number, BulkRowError[]>();
+        errors.forEach((err) => {
+            const list = m.get(err.row) ?? [];
+            list.push(err);
+            m.set(err.row, list);
+        });
+        return m;
+    }, [errors]);
+
+    const canImport = drafts.length > 0 && errors.length === 0 && !submitting;
+
+    const handleParsedFromImport = (parsed: BulkRowDraft[]) => {
+        setDrafts((prev) => [...prev, ...parsed]);
+        setTab("table");
     };
 
     const handleImport = async () => {
-        setErrMsg(null);
-        if (!preview.length) {
-            setErrMsg("Nada para importar. Faça a pré-visualização primeiro.");
+        setSubmitErr(null);
+        if (!items.length) {
+            setSubmitErr("Nenhuma questão válida para importar.");
             return;
         }
         setSubmitting(true);
         try {
-            await bulkCreateQuestionsByAssessment(
-                assessmentId,
-                preview.map((it) => ({
-                    text: it.text,
-                    skill_level: it.skill_level,
-                    weight: it.weight,
-                    correct_option: it.correct_option,
-                    descriptor_id: it.descriptor_id,
-                    assessment_id: assessmentId,
-                })),
-            );
+            await bulkCreateQuestionsByAssessment(assessmentId, items);
             onClose(true);
-        } catch (e: any) {
-            const msg = e?.response?.data?.message || "Erro na importação.";
-            setErrMsg(msg);
+        } catch (e: unknown) {
+            const apiMsg =
+                e && typeof e === "object" && "response" in e
+                    ? (e as { response?: { data?: { message?: string } } }).response?.data?.message
+                    : undefined;
+            setSubmitErr(apiMsg ?? (e instanceof Error ? e.message : "Erro na importação."));
         } finally {
             setSubmitting(false);
         }
     };
 
+    const importLabel = submitting
+        ? "Importando…"
+        : items.length
+            ? `Importar ${items.length} ${items.length === 1 ? "questão" : "questões"}`
+            : "Importar";
+
     return (
         <Dialog open={open} onClose={() => onClose(false)} maxWidth="lg" fullWidth>
-            <DialogTitle>Importar questões em lote</DialogTitle>
+            <DialogTitle>
+                <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Typography variant="h6" sx={{ flex: 1 }}>
+                        Importar questões em lote
+                    </Typography>
+                    {drafts.length > 0 && (
+                        <Chip
+                            size="small"
+                            label={`${drafts.length} linha${drafts.length === 1 ? "" : "s"}`}
+                            color={errors.length ? "warning" : "success"}
+                            variant="outlined"
+                        />
+                    )}
+                    {errors.length > 0 && (
+                        <Chip
+                            size="small"
+                            color="warning"
+                            label={`${errors.length} erro${errors.length === 1 ? "" : "s"}`}
+                        />
+                    )}
+                </Stack>
+            </DialogTitle>
+
             <DialogContent dividers>
                 <Stack spacing={2}>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                        Formato aceito: <b>text;skill_level;weight;correct_option;descriptor_code(opcional)</b> — também aceita vírgula ou TAB.
-                        Use o <b>código</b> do descritor (ex.: <code>EF.1a5.MAT.1.01</code>), não o ID.
-                    </Typography>
-
-                    <Stack direction="row" spacing={1} alignItems="center">
-                        <Button size="small" onClick={fillExample} disabled={loadingDescriptors}>
-                            Preencher exemplo
-                        </Button>
-                        <FormControlLabel
-                            control={<Checkbox checked={forceHeader} onChange={(e) => setForceHeader(e.target.checked)} />}
-                            label="Primeira linha é cabeçalho"
-                        />
-                    </Stack>
-
-                    <TextField
-                        label="Colar CSV/TSV"
-                        placeholder="text;skill_level;weight;correct_option;descriptor_code"
-                        multiline
-                        minRows={8}
-                        fullWidth
-                        value={raw}
-                        onChange={(e) => setRaw(e.target.value)}
-                    />
-
-                    <Stack direction="row" spacing={1}>
-                        <Button variant="outlined" onClick={handleParse} disabled={loadingDescriptors}>
-                            Pré-visualizar
-                        </Button>
-                        <Button variant="contained" disabled={!preview.length || submitting} onClick={handleImport}>
-                            Importar
-                        </Button>
-                    </Stack>
+                    <Tabs value={tab} onChange={(_, v) => setTab(v as TabKey)}>
+                        <Tab label="Tabela editável" value="table" />
+                        <Tab label="Importar planilha" value="upload" />
+                        <Tab label="Colar texto" value="paste" />
+                    </Tabs>
 
                     {loadingDescriptors && (
                         <Alert severity="info">Carregando catálogo de descritores…</Alert>
                     )}
-                    {errMsg && <Alert severity="error">{errMsg}</Alert>}
-                    {!!parseErrors.length && (
-                        <Alert severity="warning">
-                            {parseErrors.length} erro(s) de parse:
-                            <ul style={{ margin: "4px 0 0 16px" }}>
-                                {parseErrors.slice(0, 10).map((err, i) => (
-                                    <li key={i}>{err}</li>
-                                ))}
-                                {parseErrors.length > 10 && <li>…e mais {parseErrors.length - 10}</li>}
-                            </ul>
-                        </Alert>
-                    )}
 
-                    {!!preview.length && (
-                        <>
-                            <Typography variant="subtitle2">Pré-visualização ({preview.length})</Typography>
-                            <TableContainer component={Paper} sx={{ maxHeight: 340 }}>
-                                <Table size="small" stickyHeader>
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell>Texto</TableCell>
-                                            <TableCell>Nível</TableCell>
-                                            <TableCell>Peso</TableCell>
-                                            <TableCell>Correta</TableCell>
-                                            <TableCell>Descritor</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {preview.map((p, idx) => (
-                                            <TableRow key={idx}>
-                                                <TableCell title={p.text}>
-                                                    <Typography noWrap>{p.text}</Typography>
-                                                </TableCell>
-                                                <TableCell>{p.skill_level}</TableCell>
-                                                <TableCell>{p.weight}</TableCell>
-                                                <TableCell>{p.correct_option.toUpperCase()}</TableCell>
-                                                <TableCell>
-                                                    {p.descriptor_code ? (
-                                                        <Chip
-                                                            size="small"
-                                                            label={p.descriptor_code}
-                                                            sx={{ fontFamily: "monospace", fontWeight: 700 }}
-                                                        />
-                                                    ) : (
-                                                        "—"
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
-                        </>
-                    )}
+                    <Box hidden={tab !== "table"}>
+                        <QuestionsBulkTable
+                            drafts={drafts}
+                            onChange={setDrafts}
+                            weightMode={weightMode}
+                            descriptors={descriptors}
+                            errorsByRow={errorsByRow}
+                            focusedRow={focusedRow}
+                        />
+                    </Box>
+
+                    <Box hidden={tab !== "upload"}>
+                        <QuestionsBulkUpload
+                            weightMode={weightMode}
+                            descriptors={descriptors}
+                            onParsed={handleParsedFromImport}
+                        />
+                    </Box>
+
+                    <Box hidden={tab !== "paste"}>
+                        <QuestionsBulkPaste onParsed={handleParsedFromImport} />
+                    </Box>
+
+                    <QuestionsBulkErrors
+                        errors={errors}
+                        onSelectRow={(rowIdx) => {
+                            setTab("table");
+                            setFocusedRow(rowIdx);
+                            window.setTimeout(() => setFocusedRow(null), 1200);
+                        }}
+                    />
+
+                    {submitErr && <Alert severity="error">{submitErr}</Alert>}
                 </Stack>
             </DialogContent>
+
             <DialogActions>
                 <Button onClick={() => onClose(false)}>Fechar</Button>
-                <Button variant="contained" disabled={!preview.length || submitting} onClick={handleImport}>
-                    Importar
+                <Button variant="contained" disabled={!canImport} onClick={handleImport}>
+                    {importLabel}
                 </Button>
             </DialogActions>
         </Dialog>

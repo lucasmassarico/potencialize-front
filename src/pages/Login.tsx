@@ -21,7 +21,7 @@ type FormValues = z.infer<typeof schema>;
 export default function Login() {
     const { login } = useAuth();
     const nav = useNavigate();
-    const loc = useLocation() as any;
+    const loc = useLocation() as { state?: { from?: { pathname?: string } } };
 
     const [error, setError] = React.useState<string | null>(null);
     const [showPassword, setShowPassword] = React.useState(false);

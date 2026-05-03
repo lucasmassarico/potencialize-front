@@ -103,8 +103,8 @@ export default function DescriptorFormDialog({ open, initial, currentRole, onClo
                 await createDescriptor(payload);
             }
             onClose(true);
-        } catch (e: any) {
-            const msg = e?.response?.data?.message || "Erro ao salvar descritor";
+        } catch (e: unknown) {
+            const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erro ao salvar descritor";
             setErrMsg(msg);
         }
     });

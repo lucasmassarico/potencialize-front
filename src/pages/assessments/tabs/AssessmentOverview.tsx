@@ -155,7 +155,7 @@ export default function AssessmentOverview() {
     if (isError || !data) return <Alert severity="error">Falha ao carregar overview.</Alert>;
 
     // Tipar de forma segura (se você não tiver a interface, mantenha 'any')
-    const ov: AssessmentOverviewDTO = data as any;
+    const ov: AssessmentOverviewDTO = data as AssessmentOverviewDTO;
 
     // ====== POPULAÇÃO (PT-BR) ======
     const populationRows: Array<{ label: string; value: number | string }> = [
@@ -167,7 +167,7 @@ export default function AssessmentOverview() {
     const totalQuestions = ov.overall?.total_questions ?? 0;
     const totalAnswers = ov.overall?.total_answers ?? 0;
     const correct = ov.overall?.correct ?? 0;
-    const accuracy = Number.isFinite(ov.overall?.accuracy) ? ov.overall?.accuracy : 0;
+    const accuracy = ov.overall?.accuracy ?? 0;
 
     const geralRows: Array<{ label: string; value: string | number; progress?: number }> = [
         { label: "Total de questões cadastradas", value: totalQuestions },
@@ -178,21 +178,21 @@ export default function AssessmentOverview() {
 
     // ====== POR NÍVEL (PT-BR) ======
     const skills = (ov.by_skill || [])
-        .map((r: any) => ({
-            rotulo: translateSkillLevel(r.skill_level),
+        .map((r) => ({
+            rotulo: translateSkillLevel(r.skill_level as string),
             questions: r.questions ?? 0,
             answers: r.answers ?? 0,
             correct: r.correct ?? 0,
-            acc: Number.isFinite(r.accuracy) ? r.accuracy : 0,
+            acc: Number.isFinite(r.accuracy) ? (r.accuracy ?? 0) : 0,
         }))
         .sort((a, b) => SKILL_ORDER[a.rotulo] - SKILL_ORDER[b.rotulo]);
 
     // ====== POR QUESTÃO ======
-    const perQ = (ov.by_question || []).map((q: any) => ({
+    const perQ = (ov.by_question || []).map((q: { question_id?: number; answers?: number; correct?: number; accuracy?: number }) => ({
         id: q.question_id,
         answers: q.answers ?? 0,
         correct: q.correct ?? 0,
-        acc: Number.isFinite(q.accuracy) ? q.accuracy : 0,
+        acc: q.accuracy ?? 0,
     }));
 
     const hardest = Array.isArray(ov.hardest) ? ov.hardest : [];

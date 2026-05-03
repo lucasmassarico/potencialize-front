@@ -43,7 +43,7 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
 }
 
 /** Simple list card with up to 5 items and a CTA */
-function ListCard({
+function ListCard<T>({
     title,
     items,
     emptyText,
@@ -52,11 +52,11 @@ function ListCard({
     renderItem,
 }: {
     title: string;
-    items: any[];
+    items: T[];
     emptyText: string;
     to: string;
     cta: string;
-    renderItem: (item: any) => React.ReactNode;
+    renderItem: (item: T) => React.ReactNode;
 }) {
     const limited = (items || []).slice(0, 5);
     return (
@@ -78,8 +78,8 @@ function ListCard({
                         </Typography>
                     ) : (
                         <Stack divider={<Divider flexItem />} spacing={1}>
-                            {limited.map((it) => (
-                                <Box key={(it.id ?? it.name) as React.Key}>{renderItem(it)}</Box>
+                            {limited.map((it, idx) => (
+                                <Box key={idx}>{renderItem(it)}</Box>
                             ))}
                         </Stack>
                     )}

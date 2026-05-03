@@ -1,4 +1,4 @@
-export type JwtClaims = Record<string, any>;
+export type JwtClaims = Record<string, unknown>;
 
 function b64urlToStr(b64url: string): string {
     const pad =
