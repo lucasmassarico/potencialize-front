@@ -53,8 +53,8 @@ export default function StudentFormDialog({ open, initial, classId, onClose }: P
             };
             const saved = isEdit ? await updateStudent(initial!.id, payload) : await createStudent(payload);
             onClose(true, saved);
-        } catch (e: any) {
-            const msg = e?.response?.data?.message || "Erro ao salvar aluno";
+        } catch (e: unknown) {
+            const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erro ao salvar aluno";
             setErrMsg(msg);
         }
     });

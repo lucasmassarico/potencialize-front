@@ -13,7 +13,7 @@ type Props = {
 export default function NotFound({ resourceName = "Recurso", details, ctaHref = "/", ctaLabel = "Ir para a página inicial" }: Props) {
     const nav = useNavigate();
     const { state } = useLocation();
-    const from = (state as any)?.from as string | undefined;
+    const from = (state as { from?: string } | null)?.from;
 
     return (
         <Box textAlign="center" py={6}>

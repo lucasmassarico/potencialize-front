@@ -52,11 +52,11 @@ function ListCard({
     renderItem,
 }: {
     title: string;
-    items: any[];
+    items: unknown[];
     emptyText: string;
     to: string;
     cta: string;
-    renderItem: (item: any) => React.ReactNode;
+    renderItem: (item: unknown) => React.ReactNode;
 }) {
     const limited = (items || []).slice(0, 5);
     return (

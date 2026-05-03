@@ -180,8 +180,8 @@ export default function AssessmentGradingPolicyTab() {
             qc.invalidateQueries({ queryKey: ["assessmentGradingPolicy", assessmentId] });
             qc.invalidateQueries({ queryKey: ["assessmentMatrix", assessmentId] });
             qc.invalidateQueries({ queryKey: ["assessmentOverview", assessmentId] });
-        } catch (e: any) {
-            const msg = e?.response?.data?.message || "Falha ao salvar.";
+        } catch (e: unknown) {
+            const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Falha ao salvar.";
             setSnack({ open: true, msg, sev: "error" });
         }
     });

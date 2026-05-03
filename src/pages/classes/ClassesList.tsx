@@ -256,7 +256,7 @@ export default function ClassesList() {
                 <TextField placeholder="Buscar por nome, ano ou professor" size="small" value={search} onChange={(e) => setSearch(e.target.value)} />
                 <FormControl size="small" sx={{ minWidth: 200 }}>
                     <InputLabel id="order-label">Ordenar por</InputLabel>
-                    <Select labelId="order-label" label="Ordenar por" value={order} onChange={(e) => setOrder(e.target.value as any)}>
+                    <Select labelId="order-label" label="Ordenar por" value={order} onChange={(e) => setOrder(e.target.value as "recent" | "name_asc" | "name_desc" | "year_desc" | "year_asc")}>
                         <MenuItem value="recent">Mais recentes</MenuItem>
                         <MenuItem value="name_asc">Nome (A–Z)</MenuItem>
                         <MenuItem value="name_desc">Nome (Z–A)</MenuItem>

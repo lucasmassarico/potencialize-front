@@ -41,15 +41,13 @@ export default function StudentGradeDialog({ open, assessment, questions, studen
     async function resolveAnswerId(assessmentId: number, studentId: number, questionId: number): Promise<number | undefined> {
         const res = await getStudentAssessmentResults(studentId, assessmentId);
         // aceita tanto answers (atual) quanto responses (legado)
-        const list = ((res as any).answers ?? (res as any).responses ?? []) as Array<{
-            answer_id?: number;
-            id?: number; // legado
-            question_id: number;
-        }>;
+        type AnswerEntry = { answer_id?: number; id?: number; question_id: number };
+        const resData = res as { answers?: AnswerEntry[]; responses?: AnswerEntry[] };
+        const list = resData.answers ?? resData.responses ?? [];
         const hit = list.find((a) => a.question_id === questionId);
         if (!hit) return undefined;
         if (typeof hit.answer_id === "number") return hit.answer_id;
-        if (typeof (hit as any).id === "number") return (hit as any).id; // compatibilidade com versões antigas
+        if (typeof hit.id === "number") return hit.id; // compatibilidade com versões antigas
         return undefined;
     }
 
@@ -70,17 +68,14 @@ export default function StudentGradeDialog({ open, assessment, questions, studen
             const res = await getStudentAssessmentResults(Number(studentId), assessment.id);
 
             // aceita tanto answers (atual) quanto responses (legado)
-            const list = (((res as any).answers ?? (res as any).responses) || []) as Array<{
-                answer_id?: number;
-                id?: number; // legado
-                question_id: number;
-                marked_option: AnswerOption;
-            }>;
+            type AnswerEntry2 = { answer_id?: number; id?: number; question_id: number; marked_option: AnswerOption };
+            const resData2 = res as { answers?: AnswerEntry2[]; responses?: AnswerEntry2[] };
+            const list = (resData2.answers ?? resData2.responses) || [];
 
             if (cancel) return;
             const next: Record<number, { answerId?: number; marked?: AnswerOption }> = {};
             list.forEach((a) => {
-                const aid = typeof a.answer_id === "number" ? a.answer_id : (a as any).id;
+                const aid = typeof a.answer_id === "number" ? a.answer_id : a.id;
                 if (aid) next[a.question_id] = { answerId: aid, marked: a.marked_option };
                 else next[a.question_id] = { marked: a.marked_option };
             });
@@ -126,8 +121,8 @@ export default function StudentGradeDialog({ open, assessment, questions, studen
                         question_id: q.id,
                         marked_option: cell.marked,
                     });
-                } catch (e: any) {
-                    if (e?.response?.status === 409) {
+                } catch (e: unknown) {
+                    if ((e as { response?: { status?: number } })?.response?.status === 409) {
                         const existingId = await resolveAnswerId(assessment.id, Number(studentId), q.id);
                         if (existingId) {
                             await updateStudentAnswer(existingId, { marked_option: cell.marked });
@@ -141,8 +136,8 @@ export default function StudentGradeDialog({ open, assessment, questions, studen
             }
 
             onClose(true);
-        } catch (e: any) {
-            setErr(e?.response?.data?.message || "Erro ao salvar respostas do aluno.");
+        } catch (e: unknown) {
+            setErr((e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erro ao salvar respostas do aluno.");
         } finally {
             setSubmitting(false);
         }

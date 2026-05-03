@@ -19,7 +19,7 @@ export async function refresh() {
 export async function logoutRefresh() {
     try {
         await api.post("/auth/logout-refresh", {});
-    } catch (_) {
+    } catch {
         // ignora em DEV
     }
 }

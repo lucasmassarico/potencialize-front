@@ -95,8 +95,8 @@ export default function AnswersBulkDialog({ open, onClose }: Props) {
         try {
             await bulkCreateStudentAnswers(preview); // Apenas inserts; duplicados → 409
             onClose(true);
-        } catch (e: any) {
-            setErr(e?.response?.data?.message || "Erro na importação em lote (verifique duplicados).");
+        } catch (e: unknown) {
+            setErr((e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erro na importação em lote (verifique duplicados).");
         } finally {
             setSubmitting(false);
         }

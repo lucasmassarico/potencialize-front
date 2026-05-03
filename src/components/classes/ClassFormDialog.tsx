@@ -52,8 +52,8 @@ export default function ClassFormDialog({ open, initial, currentRole, onClose }:
     const [teacher, setTeacher] = React.useState<TeacherOut | null>(
         initial
             ? {
-                  id: initial.teacher?.id!,
-                  name: initial.teacher?.name!,
+                  id: initial.teacher?.id ?? 0,
+                  name: initial.teacher?.name ?? "",
                   email: "",
                   role: "teacher",
               }
@@ -79,8 +79,8 @@ export default function ClassFormDialog({ open, initial, currentRole, onClose }:
                 await createClass(payload);
             }
             onClose(true);
-        } catch (e: any) {
-            const msg = e?.response?.data?.message || "Erro ao salvar turma";
+        } catch (e: unknown) {
+            const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erro ao salvar turma";
             setErrMsg(msg);
         }
     });

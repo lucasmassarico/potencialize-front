@@ -3,7 +3,7 @@ export function readCookie(name: string): string | null {
     const match = document.cookie.match(
         new RegExp(
             "(^|; )" +
-                name.replace(/([.$?*|{}()\[\]\\\/\+^])/g, "\\$1") +
+                name.replace(/([.$?*|{}()[\]\\/+^])/g, "\\$1") +
                 "=([^;]*)"
         )
     );

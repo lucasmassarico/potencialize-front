@@ -102,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                 extractTeacherId(claims.role, claims.sub),
                         });
                 }
-            } catch (_) {
+            } catch {
                 clearTokens();
             } finally {
                 setLoading(false);
@@ -143,7 +143,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     await AuthAPI.logoutRefresh();
                 }
             }
-        } catch (_) {}
+        } catch {
+            // logout errors are intentionally ignored
+        }
 
         clearTokens();
         setUser(null);
@@ -159,6 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
     const ctx = useContext(AuthContext);
     if (!ctx) throw new Error("useAuth must be used within AuthProvider");

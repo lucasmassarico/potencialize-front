@@ -54,8 +54,8 @@ export function messageFor(method: string | undefined, url: string | undefined, 
     const m = (method ?? "GET").toUpperCase();
     const path = stripOriginAndBasePath(url ?? "");
     const rule = ROUTE_ERROR_RULES.find((r) => r.re.test(path) && (!r.methods || r.methods.includes(m)));
-    const specific = (rule?.messages as any)?.[status];
-    const base = (DEFAULT_MESSAGES as any)[status];
+    const specific = rule?.messages?.[status as HttpStatus];
+    const base = DEFAULT_MESSAGES[status as HttpStatus];
 
     // Preferimos a mensagem útil do servidor, se houver
     let msg = serverMsg && serverMsg.trim() ? serverMsg : specific || base || "Erro inesperado.";

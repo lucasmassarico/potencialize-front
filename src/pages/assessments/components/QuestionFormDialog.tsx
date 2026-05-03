@@ -75,7 +75,7 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
         reset,
         setValue,
         watch,
-    } = useForm<FormInput, any, FormOutput>({
+    } = useForm<FormInput, unknown, FormOutput>({
         resolver: zodResolver(schema),
         defaultValues: {
             text: "",
@@ -125,8 +125,8 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
             if (isEdit) await updateQuestion(initial!.id, payload);
             else await createQuestion(payload);
             onClose(true);
-        } catch (e: any) {
-            const msg = e?.response?.data?.message || "Erro ao salvar questão.";
+        } catch (e: unknown) {
+            const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erro ao salvar questão.";
             setErrMsg(msg);
         }
     });

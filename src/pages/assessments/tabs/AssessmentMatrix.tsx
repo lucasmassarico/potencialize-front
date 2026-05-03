@@ -193,12 +193,9 @@ export default function AssessmentMatrix() {
             const acc: AnswerIndex = new Map(answerIdx);
             const promises = (data.students || []).map(async (s) => {
                 const res = await getStudentAssessmentResults(s.id, Number(assessmentId));
-                const list = (res.answers || (res as any).responses || []) as Array<{
-                    answer_id?: number;
-                    id?: number;
-                    question_id: number;
-                    marked_option: AnswerOption;
-                }>;
+                type HydrateEntry = { answer_id?: number; id?: number; question_id: number; marked_option: AnswerOption };
+                const resLegacy = res as { answers?: HydrateEntry[]; responses?: HydrateEntry[] };
+                const list = resLegacy.answers ?? resLegacy.responses ?? [];
                 list.forEach((ans) => {
                     const aid = typeof ans.answer_id === "number" ? ans.answer_id : ans.id!;
                     acc.set(`${s.id}-${ans.question_id}`, { id: aid, marked: ans.marked_option });
@@ -217,7 +214,7 @@ export default function AssessmentMatrix() {
     const getCellStyles = (marked?: string, isCorrect?: boolean, pendingFlag?: boolean) => {
         if (pendingFlag) return {};
         if (!marked) return {};
-        return (theme: any) => ({
+        return (theme: { palette: { success: { main: string }; error: { main: string } } }) => ({
             backgroundColor: isCorrect ? alpha(theme.palette.success.main, 0.18) : alpha(theme.palette.error.main, 0.18),
             outline: `1px solid ${isCorrect ? alpha(theme.palette.success.main, 0.35) : alpha(theme.palette.error.main, 0.35)}`,
             outlineOffset: -1,
@@ -293,7 +290,9 @@ export default function AssessmentMatrix() {
                 let answerId = current?.id;
                 if (!answerId) {
                     const res = await getStudentAssessmentResults(studentId, Number(assessmentId));
-                    const list = (res.answers || (res as any).responses || []) as Array<{ answer_id?: number; id?: number; question_id: number }>;
+                    type DeleteEntry = { answer_id?: number; id?: number; question_id: number };
+                    const resLegacy2 = res as { answers?: DeleteEntry[]; responses?: DeleteEntry[] };
+                    const list = resLegacy2.answers ?? resLegacy2.responses ?? [];
                     answerId = list.find((a) => a.question_id === questionId)?.id;
                 }
                 if (answerId) await deleteStudentAnswer(answerId);
@@ -311,11 +310,13 @@ export default function AssessmentMatrix() {
                         clone.set(key, { id: created.id, marked: created.marked_option });
                         return clone;
                     });
-                } catch (e: any) {
-                    const status = e?.response?.status;
+                } catch (e: unknown) {
+                    const status = (e as { response?: { status?: number } })?.response?.status;
                     if (status === 409) {
                         const res = await getStudentAssessmentResults(studentId, Number(assessmentId));
-                        const list = (res.answers || (res as any).responses || []) as Array<{ answer_id?: number; id?: number; question_id: number }>;
+                        type UpsertEntry = { answer_id?: number; id?: number; question_id: number };
+                        const resLegacy3 = res as { answers?: UpsertEntry[]; responses?: UpsertEntry[] };
+                        const list = resLegacy3.answers ?? resLegacy3.responses ?? [];
                         const existingId = list.find((a) => a.question_id === questionId)?.id;
                         if (existingId) {
                             await updateStudentAnswer(existingId, { marked_option: next });
@@ -571,7 +572,7 @@ export default function AssessmentMatrix() {
                                                     const isCrosshair = isHoveredRow || isHoveredCol;
                                                     const isFocus = isHoveredRow && isHoveredCol;
                                                     const baseStyles = getCellStyles(c?.marked_option, c?.is_correct, pendingFlag);
-                                                    const crosshairStyles = (t: any) => {
+                                                    const crosshairStyles = (t: { palette: { primary: { main: string }; success: { main: string }; error: { main: string } } }) => {
                                                         const base = typeof baseStyles === "function" ? baseStyles(t) : baseStyles;
                                                         if (!isCrosshair) return base;
                                                         const overlay = alpha(t.palette.primary.main, isFocus ? 0.22 : 0.1);

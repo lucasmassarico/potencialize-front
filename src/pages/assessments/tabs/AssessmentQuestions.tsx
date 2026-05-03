@@ -174,7 +174,7 @@ export default function AssessmentQuestions() {
                             label="Nível"
                             value={skill}
                             onChange={(e) => {
-                                setSkill(e.target.value as any);
+                                setSkill(e.target.value as SkillLevel | "");
                                 setPage(1);
                             }}
                         >
@@ -195,7 +195,7 @@ export default function AssessmentQuestions() {
                         label="Correta"
                         value={opt}
                         onChange={(e) => {
-                            setOpt(e.target.value as any);
+                            setOpt(e.target.value as Option | "");
                             setPage(1);
                         }}
                     >

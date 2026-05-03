@@ -24,14 +24,14 @@ const api: AxiosInstance = axios.create({
 let isRefreshing = false;
 let pendingQueue: Array<{
     resolve: (token: string) => void;
-    reject: (reason?: any) => void;
+    reject: (reason?: unknown) => void;
 }> = [];
 
 function onRefreshed(token: string) {
     pendingQueue.forEach((p) => p.resolve(token));
     pendingQueue = [];
 }
-function onRefreshFailed(err: any) {
+function onRefreshFailed(err: unknown) {
     pendingQueue.forEach((p) => p.reject(err));
     pendingQueue = [];
 }
@@ -52,7 +52,7 @@ api.interceptors.request.use(
             const method = (config.method || "get").toUpperCase();
             if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
                 // descobrir a pathname da request atual (pode ser relativa)
-                const urlObj = new URL((config as any).url ?? "", API_BASE);
+                const urlObj = new URL((config as InternalAxiosRequestConfig & { url?: string }).url ?? "", API_BASE);
                 const pathname = urlObj.pathname.replace(/\/+$/, ""); // remove barra final
                 const needsRefreshCsrf =
                     pathname.endsWith("/auth/refresh") ||
@@ -74,7 +74,7 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
     (res) => res,
-    async (error: AxiosError & { config: any }) => {
+    async (error: AxiosError & { config: InternalAxiosRequestConfig & { _retry?: boolean } }) => {
         const original = error.config;
         const status = error.response?.status;
 
