@@ -167,7 +167,7 @@ export default function AssessmentOverview() {
     const totalQuestions = ov.overall?.total_questions ?? 0;
     const totalAnswers = ov.overall?.total_answers ?? 0;
     const correct = ov.overall?.correct ?? 0;
-    const accuracy = Number.isFinite(ov.overall?.accuracy) ? ov.overall?.accuracy : 0;
+    const accuracy = ov.overall?.accuracy ?? 0;
 
     const geralRows: Array<{ label: string; value: string | number; progress?: number }> = [
         { label: "Total de questões cadastradas", value: totalQuestions },
