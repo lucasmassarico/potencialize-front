@@ -28,6 +28,7 @@ import { getAssessment } from "../../../api/assessments";
 import { useQuery } from "@tanstack/react-query";
 import DescriptorsCombo from "../../../components/DescriptorsCombo";
 import { useAllDescriptors } from "../../../hooks/useDescriptors";
+import { SKILL_LABEL, SKILL_LEVELS } from "../../../lib/skillLevels";
 
 const schema = z.object({
     text: z.string().min(1, "Informe o enunciado"),
@@ -38,13 +39,6 @@ const schema = z.object({
 
     correct_option: z.enum(["a", "b", "c", "d", "e"]),
 });
-
-const SKILL_LABEL: Record<SkillLevel, string> = {
-    abaixo: "Abaixo do Básico",
-    basico: "Básico",
-    adequado: "Adequado",
-    avancado: "Avançado",
-};
 
 interface Props {
     open: boolean;
@@ -165,7 +159,7 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
                                     renderValue={(v) => SKILL_LABEL[v as SkillLevel]}
                                     aria-label="Nível"
                                 >
-                                    {(["abaixo", "basico", "adequado", "avancado"] as SkillLevel[]).map((s) => (
+                                    {SKILL_LEVELS.map((s) => (
                                         <MenuItem key={s} value={s}>
                                             {SKILL_LABEL[s]}
                                         </MenuItem>

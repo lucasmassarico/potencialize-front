@@ -37,32 +37,13 @@ import UploadIcon from "@mui/icons-material/Upload";
 import StudentGradeDialog from "../components/StudentGradeDialog";
 import AnswersBulkDialog from "../components/AnswersBulkDialog";
 import type { SkillLevel } from "../../../types/questions";
+import { SKILL_LABEL, skillChipColor } from "../../../lib/skillLevels";
 
 type AnswerIndex = Map<string, { id?: number; marked?: AnswerOption }>; // key: `${studentId}-${questionId}`
 
 const STUDENT_COL_WIDTH = 260;
 const RESULT_COL_WIDTH = 200;
 const RESULT_COL_LEFT = STUDENT_COL_WIDTH;
-
-const SKILL_LABEL: Record<SkillLevel, string> = {
-    abaixo: "Abaixo do Básico",
-    basico: "Básico",
-    adequado: "Adequado",
-    avancado: "Avançado",
-};
-
-const skillChipColor = (s: SkillLevel): "error" | "warning" | "info" | "success" => {
-    switch (s) {
-        case "abaixo":
-            return "error";
-        case "basico":
-            return "warning";
-        case "adequado":
-            return "info";
-        case "avancado":
-            return "success";
-    }
-};
 
 const predictedChipColor = (key?: string): "error" | "warning" | "info" | "success" | "default" => {
     switch ((key || "").toUpperCase()) {

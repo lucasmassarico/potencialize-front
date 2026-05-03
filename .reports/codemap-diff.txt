@@ -1,0 +1,23 @@
+Codemap scan — 2026-04-26
+========================
+
+Status: INITIAL SCAN (nenhum codemap anterior encontrado)
+
+Files created:
+  + docs/CODEMAPS/architecture.md
+  + docs/CODEMAPS/frontend.md
+  + docs/CODEMAPS/dependencies.md
+
+Files scanned: 85+ TypeScript/TSX + JSON (src/)
+Ignored: node_modules/, dist/, build/, coverage/, .git/
+
+Architecture changes detected (vs prior state):
+  N/A — primeira geração
+
+New dependencies detected:
+  React 19, MUI 7, TanStack Query 5, React Router 7, Zod 4, Vite 7
+
+Staleness warnings:
+  None — codemaps recém-gerados em 2026-04-26
+
+Next recommended scan: após próxima feature de grande porte ou refatoração estrutural

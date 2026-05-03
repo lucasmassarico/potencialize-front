@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(git show*)",
+      "Bash(git fetch*)",
+      "Bash(git stash list*)",
+      "Bash(npm install*)",
+      "Bash(npm ci*)",
+      "Bash(npm run *)",
+      "Bash(npm test*)",
+      "Bash(npm ls*)",
+      "Bash(npm outdated*)",
+      "Bash(npm --version)",
+      "Bash(rg *)",
+      "Bash(npx tsc*)",
+      "Bash(npx ecc-agentshield*)",
+      "Bash(echo *)",
+      "Bash(jq *)",
+      "Read",
+      "Glob",
+      "Grep"
+    ],
+    "deny": [
+      "Bash(rm -rf*)",
+      "Bash(npm install -g*)",
+      "Bash(npm i -g*)",
+      "Bash(npm link*)",
+      "Bash(chmod*)",
+      "Bash(chown*)",
+      "Bash(sudo*)",
+      "Bash(ssh*)"
+    ]
+  }
+}
