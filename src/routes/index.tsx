@@ -1,67 +1,72 @@
-//src/routes/index.tsx
+// src/routes/index.tsx
+import type { ComponentType } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
+import CenteredLoader from "../components/CenteredLoader";
 import ProtectedRoute from "./Protected";
-import AppLayout from "../components/AppLayout";
-import Login from "../pages/Login";
-import Dashboard from "../pages/Dashboard";
-import NotFound from "../pages/NotFound";
 
-import ClassesList from "../pages/classes/ClassesList";
-import ClassDetail from "../pages/classes/ClassDetail.tsx";
-import ClassAssessments from "../pages/classes/tabs/ClassAssessments.tsx";
-import ClassStudents from "../pages/classes/tabs/ClassStudents.tsx";
-import ClassOverview from "../pages/classes/tabs/ClassOverview.tsx";
+type LazyRouteModule = {
+    default: ComponentType;
+};
 
-import DescriptorsList from "../pages/descriptors/DescriptorsList";
+const lazyPage =
+    (load: () => Promise<LazyRouteModule>) =>
+    async () => {
+        const { default: Component } = await load();
+        return { Component };
+    };
 
-import AssessmentDetail from "../pages/assessments/AssessmentDetail";
-import AssessmentOverview from "../pages/assessments/tabs/AssessmentOverview";
-import AssessmentMatrix from "../pages/assessments/tabs/AssessmentMatrix";
-import AssessmentWeights from "../pages/assessments/tabs/AssessmentWeights";
-import AssessmentQuestions from "../pages/assessments/tabs/AssessmentQuestions";
-import AssessmentGradingPolicyTab from "../pages/assessments/tabs/AssessmentGradingPolicyTab.tsx";
+function RouteLoadingFallback() {
+    return <CenteredLoader label="Carregando pagina..." />;
+}
 
 const router = createBrowserRouter([
-    { path: "/login", element: <Login /> },
+    { path: "/login", lazy: lazyPage(() => import("../pages/Login")), HydrateFallback: RouteLoadingFallback },
     {
         element: <ProtectedRoute />,
         children: [
             {
                 path: "/",
-                element: <AppLayout />,
+                lazy: lazyPage(() => import("../components/AppLayout")),
+                HydrateFallback: RouteLoadingFallback,
                 children: [
-                    { index: true, element: <Dashboard /> },
-                    { path: "descriptors", element: <DescriptorsList /> },
-                    { path: "classes", element: <ClassesList /> },
+                    { index: true, lazy: lazyPage(() => import("../pages/Dashboard")) },
+                    { path: "descriptors", lazy: lazyPage(() => import("../pages/descriptors/DescriptorsList")) },
+                    { path: "classes", lazy: lazyPage(() => import("../pages/classes/ClassesList")) },
                     {
                         path: "classes/:id",
-                        element: <ClassDetail />, // pai com sub-navbar
+                        lazy: lazyPage(() => import("../pages/classes/ClassDetail")),
                         children: [
-                            { index: true, element: <ClassOverview /> }, // /classes/:id
+                            { index: true, lazy: lazyPage(() => import("../pages/classes/tabs/ClassOverview")) },
                             {
                                 path: "assessments",
-                                element: <ClassAssessments />,
-                            }, // /classes/:id/assessments
-                            { path: "students", element: <ClassStudents /> }, // /classes/:id/students
+                                lazy: lazyPage(() => import("../pages/classes/tabs/ClassAssessments")),
+                            },
+                            { path: "students", lazy: lazyPage(() => import("../pages/classes/tabs/ClassStudents")) },
                         ],
                     },
                     {
                         path: "assessments/:assessmentId",
-                        element: <AssessmentDetail />,
+                        lazy: lazyPage(() => import("../pages/assessments/AssessmentDetail")),
                         children: [
-                            { index: true, element: <AssessmentOverview /> },
-                            { path: "matrix", element: <AssessmentMatrix /> },
-                            { path: "weights", element: <AssessmentWeights /> },
-                            { path: "questions", element: <AssessmentQuestions /> },
-                            { path: "grading-policy", element: <AssessmentGradingPolicyTab />}
+                            { index: true, lazy: lazyPage(() => import("../pages/assessments/tabs/AssessmentOverview")) },
+                            { path: "matrix", lazy: lazyPage(() => import("../pages/assessments/tabs/AssessmentMatrix")) },
+                            { path: "weights", lazy: lazyPage(() => import("../pages/assessments/tabs/AssessmentWeights")) },
+                            {
+                                path: "questions",
+                                lazy: lazyPage(() => import("../pages/assessments/tabs/AssessmentQuestions")),
+                            },
+                            {
+                                path: "grading-policy",
+                                lazy: lazyPage(() => import("../pages/assessments/tabs/AssessmentGradingPolicyTab")),
+                            },
                         ],
                     },
                 ],
             },
         ],
     },
-    { path: "*", element: <NotFound /> },
+    { path: "*", lazy: lazyPage(() => import("../pages/NotFound")), HydrateFallback: RouteLoadingFallback },
 ]);
 
 export default function AppRoutes() {
