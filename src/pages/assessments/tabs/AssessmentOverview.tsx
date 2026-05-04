@@ -1,388 +1,940 @@
+import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Box, Card, CardContent, Typography, Alert, Stack, Chip, Divider, LinearProgress, Skeleton, Grid } from "@mui/material";
+import {
+    Alert,
+    Box,
+    Button,
+    Card,
+    CardContent,
+    Chip,
+    FormControl,
+    GlobalStyles,
+    Grid,
+    InputAdornment,
+    InputLabel,
+    LinearProgress,
+    ListItemIcon,
+    Menu,
+    MenuItem,
+    Paper,
+    Select,
+    type SelectChangeEvent,
+    Skeleton,
+    Stack,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    TableSortLabel,
+    TextField,
+    Tooltip,
+    Typography,
+    useTheme,
+} from "@mui/material";
+import { BarChart } from "@mui/x-charts/BarChart";
+import { PieChart } from "@mui/x-charts/PieChart";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import DownloadIcon from "@mui/icons-material/Download";
+import PrintIcon from "@mui/icons-material/Print";
+import SearchIcon from "@mui/icons-material/Search";
+import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
+
 import { getAssessmentOverview } from "../../../api/assessments";
-import type { AssessmentOverviewDTO } from "../../../types/assessments";
+import type {
+    AssessmentOverviewDTO,
+    OverviewByQuestion,
+    OverviewRankCriteria,
+    OverviewRankedItem,
+    SkillLevel,
+} from "../../../types/assessments";
 
-/** Utils */
-const formatPercent = (v: number, digits = 1) => `${(Math.max(0, Math.min(1, v)) * 100).toFixed(digits)}%`;
-
-/** Tradução de níveis (tolerante a várias convenções) */
-function translateSkillLevel(val: string | number): string {
-    const s = String(val).toLowerCase().trim();
-
-    const map: Record<string, string> = {
-        ab: "Abaixo do Básico",
-        abaixo: "Abaixo do Básico",
-        below: "Abaixo do Básico",
-        below_basic: "Abaixo do Básico",
-        "1": "Abaixo do Básico",
-
-        b: "Básico",
-        basic: "Básico",
-        básico: "Básico",
-        basico: "Básico",
-        "2": "Básico",
-
-        ad: "Adequado",
-        adequado: "Adequado",
-        adequate: "Adequado",
-        "3": "Adequado",
-
-        av: "Avançado",
-        avancado: "Avançado",
-        avançado: "Avançado",
-        advanced: "Avançado",
-        "4": "Avançado",
-    };
-
-    return map[s] ?? s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-const SKILL_ORDER: Record<string, number> = {
-    "Abaixo do Básico": 1,
-    Básico: 2,
-    Adequado: 3,
-    Avançado: 4,
+const SKILL_LABELS: Record<SkillLevel, string> = {
+    abaixo: "Abaixo do Básico",
+    basico: "Básico",
+    adequado: "Adequado",
+    avancado: "Avançado",
 };
 
-/** Skeleton específico do Overview de Avaliação */
+const SKILL_ORDER: Record<SkillLevel, number> = {
+    abaixo: 1,
+    basico: 2,
+    adequado: 3,
+    avancado: 4,
+};
+
+type SemanticColor = "error" | "warning" | "info" | "success";
+
+const SKILL_COLOR: Record<SkillLevel, SemanticColor> = {
+    abaixo: "error",
+    basico: "warning",
+    adequado: "info",
+    avancado: "success",
+};
+
+const OPTION_LETTERS = ["a", "b", "c", "d", "e"] as const;
+type OptionLetter = (typeof OPTION_LETTERS)[number];
+
+const SUBJECT_LABELS: Record<string, string> = {
+    portugues: "Português",
+    matematica: "Matemática",
+    ciencias: "Ciências",
+    historia: "História",
+    geografia: "Geografia",
+    ingles: "Inglês",
+    artes: "Artes",
+    educacao_fisica: "Educação Física",
+    tecnologia: "Tecnologia",
+    redacao: "Redação",
+    geral: "Geral",
+    outro: "Outro",
+};
+
+const formatPercent = (v: number | null | undefined, digits = 1): string => {
+    if (v == null || !Number.isFinite(v)) return "—";
+    const clamped = Math.max(0, Math.min(1, v));
+    return `${(clamped * 100).toFixed(digits)}%`;
+};
+
+const safeNumber = (v: number | undefined | null): number => (Number.isFinite(v as number) ? (v as number) : 0);
+
+const subjectLabel = (kind?: string, other?: string | null): string | null => {
+    if (!kind) return null;
+    if (kind === "outro") return other?.trim() || "Outro";
+    return SUBJECT_LABELS[kind] ?? kind;
+};
+
+const formatRankBasis = (basis: string): string => {
+    const map: Record<string, string> = {
+        accuracy_asc: "Menor taxa de acerto",
+        accuracy_desc: "Maior taxa de acerto",
+        accuracy: "Taxa de acerto",
+    };
+    return map[basis] ?? basis;
+};
+
+const buildRankCriteriaText = (criteria: OverviewRankCriteria | undefined): string => {
+    if (!criteria) return "";
+    const top = criteria.top_n ?? 3;
+    const min = criteria.min_answers ?? 5;
+    return `Top ${top} questões pelo critério "${formatRankBasis(criteria.basis)}". Considera apenas questões com no mínimo ${min} respostas.`;
+};
+
+const csvEscape = (value: unknown): string => {
+    const s = value == null ? "" : String(value);
+    if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+        return `"${s.replace(/"/g, '""')}"`;
+    }
+    return s;
+};
+
+const downloadBlob = (filename: string, blob: Blob): void => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+};
+
+const slugify = (s: string): string => {
+    const cleaned = s
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-zA-Z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .toLowerCase();
+    return cleaned || "avaliacao";
+};
+
+interface KPICardProps {
+    title: string;
+    value: string;
+    subtitle?: string;
+    color?: SemanticColor;
+}
+
+function KPICard({ title, value, subtitle, color }: KPICardProps) {
+    const theme = useTheme();
+    const accent = color ? theme.palette[color].main : theme.palette.primary.main;
+    return (
+        <Card sx={{ height: "100%", borderTop: `3px solid ${accent}` }}>
+            <CardContent>
+                <Typography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: 0.6 }}>
+                    {title}
+                </Typography>
+                <Typography variant="h4" fontWeight={700} sx={{ mt: 0.5, mb: 0.5, color: "text.primary" }}>
+                    {value}
+                </Typography>
+                {subtitle && (
+                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                        {subtitle}
+                    </Typography>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+function SkillChip({ level, size = "small" }: { level: SkillLevel; size?: "small" | "medium" }) {
+    return <Chip size={size} color={SKILL_COLOR[level]} variant="outlined" label={SKILL_LABELS[level]} />;
+}
+
+function AccuracyBar({ value, color = "primary" }: { value: number; color?: "primary" | SemanticColor }) {
+    const pct = Math.max(0, Math.min(1, value)) * 100;
+    return (
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 140 }}>
+            <LinearProgress
+                variant="determinate"
+                value={pct}
+                color={color}
+                sx={{ flex: 1, height: 8, borderRadius: 999 }}
+                aria-label="Taxa de acerto"
+            />
+            <Typography variant="caption" fontWeight={600} sx={{ minWidth: 44, textAlign: "right" }}>
+                {formatPercent(value)}
+            </Typography>
+        </Stack>
+    );
+}
+
+interface OptionDistributionBarProps {
+    dist: OverviewByQuestion["option_distribution"];
+    correct: OptionLetter;
+}
+
+function OptionDistributionBar({ dist, correct }: OptionDistributionBarProps) {
+    const theme = useTheme();
+    const segments: Array<{ key: OptionLetter | "blank"; label: string; count: number }> = [
+        ...OPTION_LETTERS.map((l) => ({ key: l, label: l.toUpperCase(), count: safeNumber(dist[l]) })),
+        { key: "blank", label: "Branco", count: safeNumber(dist.blank) },
+    ];
+    const total = segments.reduce((acc, t) => acc + t.count, 0);
+
+    if (total === 0) {
+        return (
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                Sem distribuição
+            </Typography>
+        );
+    }
+
+    return (
+        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minWidth: 200 }} aria-label="Distribuição por alternativa">
+            {segments.map((seg) => {
+                const pct = (seg.count / total) * 100;
+                const isCorrect = seg.key === correct;
+                const isBlank = seg.key === "blank";
+                const bg = isCorrect
+                    ? theme.palette.success.main
+                    : isBlank
+                      ? theme.palette.grey[400]
+                      : theme.palette.grey[500];
+                if (pct === 0) return null;
+                return (
+                    <Tooltip
+                        key={seg.key}
+                        title={`${seg.label}${isCorrect ? " (gabarito)" : ""}: ${seg.count} (${pct.toFixed(0)}%)`}
+                        arrow
+                    >
+                        <Box
+                            sx={{
+                                flex: pct,
+                                minWidth: 6,
+                                height: 14,
+                                borderRadius: 0.5,
+                                backgroundColor: bg,
+                                border: isCorrect ? `1px solid ${theme.palette.success.dark}` : "none",
+                            }}
+                        />
+                    </Tooltip>
+                );
+            })}
+        </Stack>
+    );
+}
+
+function RankedQuestionCard({ item, accent }: { item: OverviewRankedItem; accent: SemanticColor }) {
+    const theme = useTheme();
+    return (
+        <Paper variant="outlined" sx={{ p: 1.5, borderLeft: `3px solid ${theme.palette[accent].main}` }}>
+            <Stack spacing={1}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} flexWrap="wrap">
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                        <Typography variant="body2" fontWeight={700}>
+                            Q#{item.question_id}
+                        </Typography>
+                        <SkillChip level={item.skill_level} />
+                        {item.descriptor_code && <Chip size="small" variant="outlined" label={item.descriptor_code} />}
+                    </Stack>
+                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                        {item.answers} respostas
+                    </Typography>
+                </Stack>
+                <Typography variant="body2" sx={{ color: "text.primary" }}>
+                    {item.text_short || "(sem enunciado)"}
+                </Typography>
+                <AccuracyBar value={safeNumber(item.accuracy)} color={accent} />
+            </Stack>
+        </Paper>
+    );
+}
+
 function AssessmentOverviewSkeleton() {
     return (
         <Box sx={{ display: "grid", gap: 2 }}>
-            <Card>
-                <CardContent>
-                    <Skeleton width={140} height={24} />
-                    <Stack direction="row" spacing={2} mt={1}>
-                        <Stack spacing={0.5}>
-                            <Skeleton width={180} />
-                            <Skeleton width={100} height={32} />
-                        </Stack>
-                        <Stack spacing={0.5}>
-                            <Skeleton width={220} />
-                            <Skeleton width={100} height={32} />
-                        </Stack>
-                    </Stack>
-                </CardContent>
-            </Card>
-
             <Grid container spacing={2}>
-                <Grid size={{ xs: 12, sm: 6 }}>
+                {Array.from({ length: 4 }).map((_, i) => (
+                    <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
+                        <Card>
+                            <CardContent>
+                                <Skeleton width={120} />
+                                <Skeleton width={80} height={42} />
+                                <Skeleton width={140} />
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                ))}
+            </Grid>
+            <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 7 }}>
                     <Card>
                         <CardContent>
-                            <Skeleton width={80} height={24} />
-                            <Stack spacing={1.2} mt={1}>
-                                {Array.from({ length: 4 }).map((_, i) => (
-                                    <Stack key={i} direction="row" alignItems="center" spacing={2}>
-                                        <Skeleton width="60%" />
-                                        <Skeleton width={80} />
-                                    </Stack>
-                                ))}
-                            </Stack>
+                            <Skeleton width={180} height={28} />
+                            <Skeleton variant="rounded" height={220} sx={{ mt: 1 }} />
                         </CardContent>
                     </Card>
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
+                <Grid size={{ xs: 12, md: 5 }}>
                     <Card>
                         <CardContent>
-                            <Skeleton width={140} height={24} />
-                            <Stack spacing={1.2} mt={1}>
-                                {Array.from({ length: 4 }).map((_, i) => (
-                                    <Stack key={i} spacing={0.5}>
-                                        <Skeleton width="40%" />
-                                        <Skeleton variant="rounded" height={8} />
-                                    </Stack>
-                                ))}
-                            </Stack>
+                            <Skeleton width={140} height={28} />
+                            <Skeleton variant="rounded" height={220} sx={{ mt: 1 }} />
                         </CardContent>
                     </Card>
                 </Grid>
             </Grid>
-
             <Card>
                 <CardContent>
-                    <Skeleton width={120} height={24} />
-                    {Array.from({ length: 5 }).map((_, i) => (
-                        <Stack key={i} direction="row" spacing={2} alignItems="center" mt={1}>
-                            <Skeleton width={90} />
-                            <Skeleton width={70} />
-                            <Skeleton width={120} />
-                            <Skeleton variant="rounded" height={8} sx={{ flex: 1 }} />
-                        </Stack>
-                    ))}
+                    <Skeleton width={220} height={28} />
+                    <Skeleton variant="rounded" height={300} sx={{ mt: 1 }} />
                 </CardContent>
             </Card>
-
-            <Grid container spacing={2}>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                    <Card>
-                        <CardContent>
-                            <Skeleton width={120} height={24} />
-                            <Stack direction="row" spacing={1} mt={1}>
-                                {Array.from({ length: 3 }).map((_, i) => (
-                                    <Skeleton key={i} variant="rounded" width={96} height={28} />
-                                ))}
-                            </Stack>
-                        </CardContent>
-                    </Card>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                    <Card>
-                        <CardContent>
-                            <Skeleton width={110} height={24} />
-                            <Stack direction="row" spacing={1} mt={1}>
-                                {Array.from({ length: 3 }).map((_, i) => (
-                                    <Skeleton key={i} variant="rounded" width={96} height={28} />
-                                ))}
-                            </Stack>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            </Grid>
         </Box>
     );
 }
 
+type SortKey = "id" | "accuracy" | "answers";
+type SortDir = "asc" | "desc";
+
+const printStyles = {
+    "@media print": {
+        "body *": { visibility: "hidden" as const },
+        ".assessment-overview-print, .assessment-overview-print *": { visibility: "visible" as const },
+        ".assessment-overview-print": {
+            position: "absolute" as const,
+            inset: 0,
+            padding: "16px",
+        },
+        ".no-print": { display: "none !important" as const },
+    },
+};
+
 export default function AssessmentOverview() {
     const { assessmentId } = useParams<{ assessmentId: string }>();
+    const theme = useTheme();
     const { data, isLoading, isError } = useQuery({
         queryKey: ["assessmentOverview", assessmentId],
         queryFn: () => getAssessmentOverview(Number(assessmentId)),
         enabled: !!assessmentId,
     });
 
+    const [search, setSearch] = useState<string>("");
+    const [skillFilter, setSkillFilter] = useState<SkillLevel | "all">("all");
+    const [descriptorFilter, setDescriptorFilter] = useState<string>("all");
+    const [sortKey, setSortKey] = useState<SortKey>("accuracy");
+    const [sortDir, setSortDir] = useState<SortDir>("asc");
+    const [exportAnchor, setExportAnchor] = useState<HTMLElement | null>(null);
+
+    const ov: AssessmentOverviewDTO | undefined = data;
+
+    const skillsSorted = useMemo(() => {
+        if (!ov) return [];
+        return [...ov.by_skill].sort((a, b) => SKILL_ORDER[a.skill_level] - SKILL_ORDER[b.skill_level]);
+    }, [ov]);
+
+    const descriptorOptions = useMemo(() => {
+        if (!ov) return [] as Array<{ id: number; code: string; label: string }>;
+        const map = new Map<number, { id: number; code: string; label: string }>();
+        for (const q of ov.by_question) {
+            if (q.descriptor_id != null && !map.has(q.descriptor_id)) {
+                const code = q.descriptor_code ?? `#${q.descriptor_id}`;
+                const title = q.descriptor_title ?? "";
+                map.set(q.descriptor_id, {
+                    id: q.descriptor_id,
+                    code,
+                    label: title ? `${code} — ${title}` : code,
+                });
+            }
+        }
+        return Array.from(map.values()).sort((a, b) => a.code.localeCompare(b.code));
+    }, [ov]);
+
+    const filteredQuestions = useMemo<OverviewByQuestion[]>(() => {
+        if (!ov) return [];
+        const term = search.trim().toLowerCase();
+        const list = ov.by_question.filter((q) => {
+            if (skillFilter !== "all" && q.skill_level !== skillFilter) return false;
+            if (descriptorFilter !== "all" && String(q.descriptor_id ?? "") !== descriptorFilter) return false;
+            if (term) {
+                const haystack = `${q.question_id} ${q.text_short ?? ""} ${q.descriptor_code ?? ""} ${q.descriptor_title ?? ""}`.toLowerCase();
+                if (!haystack.includes(term)) return false;
+            }
+            return true;
+        });
+        const dir = sortDir === "asc" ? 1 : -1;
+        return list.sort((a, b) => {
+            const av = sortKey === "id" ? a.question_id : sortKey === "answers" ? a.answers : a.accuracy;
+            const bv = sortKey === "id" ? b.question_id : sortKey === "answers" ? b.answers : b.accuracy;
+            return (av - bv) * dir;
+        });
+    }, [ov, search, skillFilter, descriptorFilter, sortKey, sortDir]);
+
     if (isLoading) return <AssessmentOverviewSkeleton />;
-    if (isError || !data) return <Alert severity="error">Falha ao carregar overview.</Alert>;
+    if (isError || !ov) return <Alert severity="error">Falha ao carregar overview.</Alert>;
 
-    // Tipar de forma segura (se você não tiver a interface, mantenha 'any')
-    const ov: AssessmentOverviewDTO = data as AssessmentOverviewDTO;
+    const participation = safeNumber(ov.population.participation_rate);
+    const studentsAnswered = safeNumber(ov.population.students_answered_any);
+    const studentsTotal = safeNumber(ov.population.students_in_class);
+    const accuracy = safeNumber(ov.overall.accuracy);
+    const totalAnswers = safeNumber(ov.overall.total_answers);
+    const totalQuestions = safeNumber(ov.overall.total_questions);
+    const correct = safeNumber(ov.overall.correct);
+    const hardestTop = ov.hardest[0];
+    const subject = subjectLabel(ov.assessment.subject_kind, ov.assessment.subject_other ?? null);
+    const filenameBase = `${slugify(ov.assessment.title || `avaliacao-${ov.assessment.id}`)}-overview`;
+    const expectedAnswers = totalQuestions * studentsTotal;
+    const coverageLabel = expectedAnswers > 0 ? `${formatPercent(totalAnswers / expectedAnswers)} de cobertura` : "—";
 
-    // ====== POPULAÇÃO (PT-BR) ======
-    const populationRows: Array<{ label: string; value: number | string }> = [
-        { label: "Alunos cadastrados", value: ov.population?.students_in_class ?? 0 },
-        { label: "Alunos que responderam", value: ov.population?.students_answered_any ?? 0 },
-    ];
+    const handleSort = (key: SortKey) => {
+        if (sortKey === key) {
+            setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+        } else {
+            setSortKey(key);
+            setSortDir("asc");
+        }
+    };
 
-    // ====== GERAL (PT-BR) ======
-    const totalQuestions = ov.overall?.total_questions ?? 0;
-    const totalAnswers = ov.overall?.total_answers ?? 0;
-    const correct = ov.overall?.correct ?? 0;
-    const accuracy = ov.overall?.accuracy ?? 0;
+    const handleExportCSV = () => {
+        setExportAnchor(null);
+        const header = ["#", "Enunciado", "Nível", "Descritor", "Peso", "Gabarito", "Respondidas", "Corretas", "Acerto (%)", "A", "B", "C", "D", "E", "Branco"];
+        const rows = ov.by_question.map((q) => [
+            q.question_id,
+            q.text_short ?? "",
+            SKILL_LABELS[q.skill_level],
+            q.descriptor_code ?? "",
+            q.weight,
+            q.correct_option.toUpperCase(),
+            q.answers,
+            q.correct,
+            (q.accuracy * 100).toFixed(1),
+            q.option_distribution.a,
+            q.option_distribution.b,
+            q.option_distribution.c,
+            q.option_distribution.d,
+            q.option_distribution.e,
+            q.option_distribution.blank,
+        ]);
+        const csv = [header, ...rows].map((r) => r.map(csvEscape).join(",")).join("\r\n");
+        const utf8Bom = String.fromCharCode(0xfeff);
+        const blob = new Blob([utf8Bom + csv], { type: "text/csv;charset=utf-8" });
+        downloadBlob(`${filenameBase}.csv`, blob);
+    };
 
-    const geralRows: Array<{ label: string; value: string | number; progress?: number }> = [
-        { label: "Total de questões cadastradas", value: totalQuestions },
-        { label: "Questões respondidas", value: totalAnswers },
-        { label: "Respostas corretas", value: correct },
-        { label: "Taxa de acerto", value: formatPercent(accuracy), progress: accuracy },
-    ];
+    const handleExportXLSX = async () => {
+        setExportAnchor(null);
+        const XLSX = await import("xlsx");
+        const wb = XLSX.utils.book_new();
 
-    // ====== POR NÍVEL (PT-BR) ======
-    const skills = (ov.by_skill || [])
-        .map((r) => ({
-            rotulo: translateSkillLevel(r.skill_level as string),
-            questions: r.questions ?? 0,
-            answers: r.answers ?? 0,
-            correct: r.correct ?? 0,
-            acc: Number.isFinite(r.accuracy) ? (r.accuracy ?? 0) : 0,
-        }))
-        .sort((a, b) => SKILL_ORDER[a.rotulo] - SKILL_ORDER[b.rotulo]);
+        const summary: Array<Array<string | number>> = [
+            ["Avaliação", ov.assessment.title],
+            ["Data", ov.assessment.date],
+            ["Disciplina", subject ?? "—"],
+            [],
+            ["Indicador", "Valor"],
+            ["Taxa de acerto geral", `${(accuracy * 100).toFixed(1)}%`],
+            ["Participação", `${(participation * 100).toFixed(1)}%`],
+            ["Alunos que responderam", `${studentsAnswered}/${studentsTotal}`],
+            ["Questões respondidas", `${totalAnswers}/${totalQuestions}`],
+            ["Respostas corretas", correct],
+        ];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), "Resumo");
 
-    // ====== POR QUESTÃO ======
-    const perQ = (ov.by_question || []).map((q: { question_id?: number; answers?: number; correct?: number; accuracy?: number }) => ({
-        id: q.question_id,
-        answers: q.answers ?? 0,
-        correct: q.correct ?? 0,
-        acc: q.accuracy ?? 0,
-    }));
+        const skillSheet = [
+            ["Nível", "Questões", "Respondidas", "Corretas", "Acerto (%)", "Alunos que responderam"],
+            ...skillsSorted.map((s) => [
+                SKILL_LABELS[s.skill_level],
+                s.questions,
+                s.answers,
+                s.correct,
+                (s.accuracy * 100).toFixed(1),
+                s.students_answered,
+            ]),
+        ];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(skillSheet), "Por nível");
 
-    const hardest = Array.isArray(ov.hardest) ? ov.hardest : [];
-    const easiest = Array.isArray(ov.easiest) ? ov.easiest : [];
+        const questionsSheet = [
+            ["#", "Enunciado", "Nível", "Descritor", "Título do descritor", "Peso", "Gabarito", "Respondidas", "Corretas", "Acerto (%)", "A", "B", "C", "D", "E", "Branco"],
+            ...ov.by_question.map((q) => [
+                q.question_id,
+                q.text_short ?? "",
+                SKILL_LABELS[q.skill_level],
+                q.descriptor_code ?? "",
+                q.descriptor_title ?? "",
+                q.weight,
+                q.correct_option.toUpperCase(),
+                q.answers,
+                q.correct,
+                (q.accuracy * 100).toFixed(1),
+                q.option_distribution.a,
+                q.option_distribution.b,
+                q.option_distribution.c,
+                q.option_distribution.d,
+                q.option_distribution.e,
+                q.option_distribution.blank,
+            ]),
+        ];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(questionsSheet), "Por questão");
+
+        const rankedHeader = ["#", "Enunciado", "Nível", "Descritor", "Acerto (%)", "Respondidas"];
+        const toRankedRow = (q: OverviewRankedItem) => [
+            q.question_id,
+            q.text_short ?? "",
+            SKILL_LABELS[q.skill_level],
+            q.descriptor_code ?? "",
+            (q.accuracy * 100).toFixed(1),
+            q.answers,
+        ];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([rankedHeader, ...ov.hardest.map(toRankedRow)]), "Mais difíceis");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([rankedHeader, ...ov.easiest.map(toRankedRow)]), "Mais fáceis");
+
+        XLSX.writeFile(wb, `${filenameBase}.xlsx`);
+    };
+
+    const handlePrint = () => {
+        setExportAnchor(null);
+        window.print();
+    };
+
+    const skillsBarLabels = skillsSorted.map((s) => SKILL_LABELS[s.skill_level]);
+    const skillsBarValues = skillsSorted.map((s) => Number((s.accuracy * 100).toFixed(1)));
+    const skillsBarColors = skillsSorted.map((s) => theme.palette[SKILL_COLOR[s.skill_level]].main);
+    const notAnswered = Math.max(0, studentsTotal - studentsAnswered);
+    const dateLabel = ov.assessment.date ? new Date(`${ov.assessment.date}T00:00:00`).toLocaleDateString("pt-BR") : null;
 
     return (
-        <Box sx={{ display: "grid", gap: 2 }}>
-            {/* População */}
-            <Card>
-                <CardContent>
-                    <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                        População
-                    </Typography>
-                    <Stack direction={{ xs: "column", sm: "row" }} spacing={3}>
-                        {populationRows.map((r) => (
-                            <Stack key={r.label} spacing={0.5}>
-                                <Typography variant="body2" sx={{ opacity: 0.75 }}>
-                                    {r.label}
-                                </Typography>
-                                <Typography variant="h6" fontWeight={700}>
-                                    {r.value}
-                                </Typography>
-                            </Stack>
-                        ))}
-                    </Stack>
-                </CardContent>
-            </Card>
+        <Box className="assessment-overview-print" sx={{ display: "grid", gap: 2 }}>
+            <GlobalStyles styles={printStyles} />
 
-            {/* Geral + Por nível */}
             <Grid container spacing={2}>
-                <Grid size={{ xs: 12, sm: 6 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                    <KPICard
+                        title="Taxa de acerto"
+                        value={formatPercent(accuracy)}
+                        subtitle={`${correct} de ${totalAnswers} respostas`}
+                        color={accuracy >= 0.7 ? "success" : accuracy >= 0.5 ? "info" : accuracy >= 0.3 ? "warning" : "error"}
+                    />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                    <KPICard
+                        title="Participação"
+                        value={formatPercent(participation)}
+                        subtitle={`${studentsAnswered} de ${studentsTotal} alunos responderam`}
+                        color={participation >= 0.8 ? "success" : participation >= 0.5 ? "info" : "warning"}
+                    />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                    <KPICard
+                        title="Questões"
+                        value={`${totalAnswers}/${expectedAnswers || totalQuestions}`}
+                        subtitle={coverageLabel}
+                    />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                    <KPICard
+                        title="Questão crítica"
+                        value={hardestTop ? `Q#${hardestTop.question_id}` : "—"}
+                        subtitle={hardestTop ? `${formatPercent(hardestTop.accuracy)} de acerto · ${hardestTop.answers} respostas` : "Sem dados suficientes"}
+                        color="error"
+                    />
+                </Grid>
+            </Grid>
+
+            <Stack
+                className="no-print"
+                direction={{ xs: "column", md: "row" }}
+                spacing={1.5}
+                alignItems={{ md: "center" }}
+                justifyContent="space-between"
+            >
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                    {subject && <Chip size="small" variant="outlined" label={subject} />}
+                    {dateLabel && <Chip size="small" variant="outlined" label={dateLabel} />}
+                </Stack>
+
+                <Stack direction="row" spacing={1}>
+                    <Button
+                        variant="outlined"
+                        startIcon={<DownloadIcon />}
+                        onClick={(e) => setExportAnchor(e.currentTarget)}
+                        aria-haspopup="menu"
+                        aria-expanded={Boolean(exportAnchor)}
+                    >
+                        Exportar
+                    </Button>
+                    <Menu
+                        anchorEl={exportAnchor}
+                        open={Boolean(exportAnchor)}
+                        onClose={() => setExportAnchor(null)}
+                    >
+                        <MenuItem onClick={handleExportXLSX}>
+                            <ListItemIcon>
+                                <TableChartOutlinedIcon fontSize="small" />
+                            </ListItemIcon>
+                            Excel (.xlsx)
+                        </MenuItem>
+                        <MenuItem onClick={handleExportCSV}>
+                            <ListItemIcon>
+                                <DescriptionOutlinedIcon fontSize="small" />
+                            </ListItemIcon>
+                            CSV
+                        </MenuItem>
+                        <MenuItem onClick={handlePrint}>
+                            <ListItemIcon>
+                                <PrintIcon fontSize="small" />
+                            </ListItemIcon>
+                            Imprimir
+                        </MenuItem>
+                    </Menu>
+                </Stack>
+            </Stack>
+
+            <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 7 }}>
                     <Card>
                         <CardContent>
                             <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                                Geral
+                                Acerto por nível
                             </Typography>
-                            <Stack spacing={1.25}>
-                                {geralRows.map((r) => (
-                                    <Box key={r.label}>
-                                        <Stack direction="row" alignItems="center" justifyContent="space-between">
-                                            <Typography variant="body2" sx={{ opacity: 0.85 }}>
-                                                {r.label}
-                                            </Typography>
-                                            <Typography variant="body2" fontWeight={600}>
-                                                {r.value}
-                                            </Typography>
-                                        </Stack>
-                                        {"progress" in r && typeof r.progress === "number" && (
-                                            <LinearProgress
-                                                variant="determinate"
-                                                value={Math.max(0, Math.min(100, r.progress * 100))}
-                                                sx={{ mt: 0.75, height: 8, borderRadius: 999 }}
-                                                aria-label="Taxa de acerto"
-                                            />
-                                        )}
-                                        <Divider sx={{ my: 1.25 }} />
-                                    </Box>
+                            {skillsSorted.length === 0 ? (
+                                <Alert severity="info">Sem dados por nível.</Alert>
+                            ) : (
+                                <BarChart
+                                    height={260}
+                                    layout="horizontal"
+                                    yAxis={[
+                                        {
+                                            scaleType: "band",
+                                            data: skillsBarLabels,
+                                            colorMap: {
+                                                type: "ordinal",
+                                                values: skillsBarLabels,
+                                                colors: skillsBarColors,
+                                            },
+                                        },
+                                    ]}
+                                    xAxis={[{ min: 0, max: 100, valueFormatter: (v: number | null) => `${v ?? 0}%` }]}
+                                    series={[
+                                        {
+                                            data: skillsBarValues,
+                                            label: "Taxa de acerto",
+                                            valueFormatter: (v: number | null) => (v == null ? "—" : `${v.toFixed(1)}%`),
+                                        },
+                                    ]}
+                                    margin={{ left: 24, right: 12, top: 12, bottom: 24 }}
+                                />
+                            )}
+                            <Stack spacing={1} sx={{ mt: 1.5 }}>
+                                {skillsSorted.map((s) => (
+                                    <Stack key={s.skill_level} direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
+                                        <Box sx={{ minWidth: 150 }}>
+                                            <SkillChip level={s.skill_level} />
+                                        </Box>
+                                        <Typography variant="caption" sx={{ color: "text.secondary", minWidth: 140 }}>
+                                            {s.correct}/{s.answers} corretas
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ color: "text.secondary", minWidth: 110 }}>
+                                            {s.students_answered} alunos
+                                        </Typography>
+                                    </Stack>
                                 ))}
                             </Stack>
                         </CardContent>
                     </Card>
                 </Grid>
 
-                <Grid size={{ xs: 12, sm: 6 }}>
+                <Grid size={{ xs: 12, md: 5 }}>
                     <Card>
                         <CardContent>
                             <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                                Desempenho por nível
+                                Participação
                             </Typography>
-                            <Stack spacing={1.25}>
-                                {skills.length === 0 && <Alert severity="info">Sem dados por nível.</Alert>}
-                                {skills.map((s) => (
-                                    <Box key={s.rotulo}>
-                                        <Stack direction="row" alignItems="center" justifyContent="space-between">
-                                            <Typography variant="body2" fontWeight={600}>
-                                                {s.rotulo}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                                                {s.correct}/{s.answers} corretas
-                                            </Typography>
-                                        </Stack>
-                                        <LinearProgress
-                                            variant="determinate"
-                                            value={Math.max(0, Math.min(100, s.acc * 100))}
-                                            sx={{ mt: 0.75, height: 8, borderRadius: 999 }}
-                                            aria-label={`Taxa de acerto - ${s.rotulo}`}
-                                        />
-                                        <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
-                                            <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                                                Questões: <b>{s.questions}</b>
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                                                Respondidas: <b>{s.answers}</b>
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                                                Acerto: <b>{formatPercent(s.acc)}</b>
-                                            </Typography>
-                                        </Stack>
-                                        <Divider sx={{ my: 1.25 }} />
-                                    </Box>
-                                ))}
-                            </Stack>
+                            {studentsTotal === 0 ? (
+                                <Alert severity="info">Sem alunos cadastrados na turma.</Alert>
+                            ) : (
+                                <PieChart
+                                    height={220}
+                                    series={[
+                                        {
+                                            innerRadius: 50,
+                                            outerRadius: 90,
+                                            paddingAngle: 2,
+                                            cornerRadius: 4,
+                                            data: [
+                                                {
+                                                    id: "answered",
+                                                    value: studentsAnswered,
+                                                    label: "Responderam",
+                                                    color: theme.palette.success.main,
+                                                },
+                                                {
+                                                    id: "missing",
+                                                    value: notAnswered,
+                                                    label: "Sem resposta",
+                                                    color: theme.palette.grey[400],
+                                                },
+                                            ],
+                                        },
+                                    ]}
+                                />
+                            )}
+                            <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center", mt: 1 }}>
+                                {formatPercent(participation)} dos alunos responderam ao menos uma questão
+                            </Typography>
                         </CardContent>
                     </Card>
                 </Grid>
             </Grid>
 
-            {/* Por questão */}
+            <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <Card>
+                        <CardContent>
+                            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                                <Tooltip title={buildRankCriteriaText(ov.hardest_criteria)} arrow>
+                                    <Typography variant="subtitle1" fontWeight={700}>
+                                        Questões com pior desempenho
+                                    </Typography>
+                                </Tooltip>
+                                <Chip size="small" variant="outlined" label={`mín. ${ov.hardest_criteria?.min_answers ?? 5} respostas`} />
+                            </Stack>
+                            {ov.hardest.length === 0 ? (
+                                <Alert severity="info">
+                                    Ainda não há questões ranqueadas. Aguarde mais respostas (mínimo {ov.hardest_criteria?.min_answers ?? 5} por questão).
+                                </Alert>
+                            ) : (
+                                <Stack spacing={1}>
+                                    {ov.hardest.map((q) => (
+                                        <RankedQuestionCard key={q.question_id} item={q} accent="error" />
+                                    ))}
+                                </Stack>
+                            )}
+                        </CardContent>
+                    </Card>
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <Card>
+                        <CardContent>
+                            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                                <Tooltip title={buildRankCriteriaText(ov.easiest_criteria)} arrow>
+                                    <Typography variant="subtitle1" fontWeight={700}>
+                                        Questões com melhor desempenho
+                                    </Typography>
+                                </Tooltip>
+                                <Chip size="small" variant="outlined" label={`mín. ${ov.easiest_criteria?.min_answers ?? 5} respostas`} />
+                            </Stack>
+                            {ov.easiest.length === 0 ? (
+                                <Alert severity="info">
+                                    Ainda não há questões ranqueadas. Aguarde mais respostas (mínimo {ov.easiest_criteria?.min_answers ?? 5} por questão).
+                                </Alert>
+                            ) : (
+                                <Stack spacing={1}>
+                                    {ov.easiest.map((q) => (
+                                        <RankedQuestionCard key={q.question_id} item={q} accent="success" />
+                                    ))}
+                                </Stack>
+                            )}
+                        </CardContent>
+                    </Card>
+                </Grid>
+            </Grid>
+
             <Card>
                 <CardContent>
-                    <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                        Por questão
-                    </Typography>
-
-                    {perQ.length === 0 && <Alert severity="info">Sem respostas nas questões desta avaliação.</Alert>}
-
-                    {perQ.length > 0 && (
-                        <Stack spacing={1.25}>
-                            {perQ.map((q) => (
-                                <Box key={q.id}>
-                                    <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
-                                        <Typography variant="body2" fontWeight={600}>
-                                            Questão #{q.id}
-                                        </Typography>
-                                        <Stack direction="row" spacing={2}>
-                                            <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                                                Respondidas: <b>{q.answers}</b>
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                                                Corretas: <b>{q.correct}</b>
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                                                Acerto: <b>{formatPercent(q.acc)}</b>
-                                            </Typography>
-                                        </Stack>
-                                    </Stack>
-                                    <LinearProgress
-                                        variant="determinate"
-                                        value={Math.max(0, Math.min(100, q.acc * 100))}
-                                        sx={{ mt: 0.75, height: 8, borderRadius: 999 }}
-                                        aria-label={`Taxa de acerto - Questão ${q.id}`}
-                                    />
-                                    <Divider sx={{ my: 1.25 }} />
-                                </Box>
-                            ))}
+                    <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} alignItems={{ md: "center" }} justifyContent="space-between" sx={{ mb: 2 }}>
+                        <Typography variant="subtitle1" fontWeight={700}>
+                            Desempenho por questão
+                        </Typography>
+                        <Stack className="no-print" direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ minWidth: { md: 560 } }}>
+                            <TextField
+                                size="small"
+                                placeholder="Buscar enunciado, descritor, ID…"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <SearchIcon fontSize="small" />
+                                        </InputAdornment>
+                                    ),
+                                }}
+                                sx={{ flex: 1 }}
+                            />
+                            <FormControl size="small" sx={{ minWidth: 160 }}>
+                                <InputLabel id="skill-filter-label">Nível</InputLabel>
+                                <Select
+                                    labelId="skill-filter-label"
+                                    label="Nível"
+                                    value={skillFilter}
+                                    onChange={(e: SelectChangeEvent) => setSkillFilter(e.target.value as SkillLevel | "all")}
+                                >
+                                    <MenuItem value="all">Todos</MenuItem>
+                                    {(Object.keys(SKILL_LABELS) as SkillLevel[]).map((k) => (
+                                        <MenuItem key={k} value={k}>
+                                            {SKILL_LABELS[k]}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            <FormControl size="small" sx={{ minWidth: 200 }} disabled={descriptorOptions.length === 0}>
+                                <InputLabel id="desc-filter-label">Descritor</InputLabel>
+                                <Select
+                                    labelId="desc-filter-label"
+                                    label="Descritor"
+                                    value={descriptorFilter}
+                                    onChange={(e: SelectChangeEvent) => setDescriptorFilter(e.target.value)}
+                                >
+                                    <MenuItem value="all">Todos</MenuItem>
+                                    {descriptorOptions.map((d) => (
+                                        <MenuItem key={d.id} value={String(d.id)}>
+                                            {d.label}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
                         </Stack>
+                    </Stack>
+
+                    {filteredQuestions.length === 0 ? (
+                        <Alert severity="info">
+                            {ov.by_question.length === 0
+                                ? "Sem respostas nas questões desta avaliação."
+                                : "Nenhuma questão corresponde aos filtros aplicados."}
+                        </Alert>
+                    ) : (
+                        <TableContainer sx={{ maxHeight: 560 }}>
+                            <Table stickyHeader size="small">
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell sortDirection={sortKey === "id" ? sortDir : false}>
+                                            <TableSortLabel
+                                                active={sortKey === "id"}
+                                                direction={sortKey === "id" ? sortDir : "asc"}
+                                                onClick={() => handleSort("id")}
+                                            >
+                                                #
+                                            </TableSortLabel>
+                                        </TableCell>
+                                        <TableCell>Enunciado</TableCell>
+                                        <TableCell>Nível</TableCell>
+                                        <TableCell>Descritor</TableCell>
+                                        <TableCell align="center" sortDirection={sortKey === "answers" ? sortDir : false}>
+                                            <TableSortLabel
+                                                active={sortKey === "answers"}
+                                                direction={sortKey === "answers" ? sortDir : "asc"}
+                                                onClick={() => handleSort("answers")}
+                                            >
+                                                Respondidas
+                                            </TableSortLabel>
+                                        </TableCell>
+                                        <TableCell align="center">Gabarito</TableCell>
+                                        <TableCell sortDirection={sortKey === "accuracy" ? sortDir : false}>
+                                            <TableSortLabel
+                                                active={sortKey === "accuracy"}
+                                                direction={sortKey === "accuracy" ? sortDir : "asc"}
+                                                onClick={() => handleSort("accuracy")}
+                                            >
+                                                Acerto
+                                            </TableSortLabel>
+                                        </TableCell>
+                                        <TableCell>Distribuição A·B·C·D·E·Branco</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {filteredQuestions.map((q) => (
+                                        <TableRow key={q.question_id} hover>
+                                            <TableCell sx={{ whiteSpace: "nowrap" }}>
+                                                <Typography variant="body2" fontWeight={600}>
+                                                    Q#{q.question_id}
+                                                </Typography>
+                                            </TableCell>
+                                            <TableCell sx={{ maxWidth: 360 }}>
+                                                <Tooltip title={q.text_short || ""} arrow placement="top-start">
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{
+                                                            display: "-webkit-box",
+                                                            WebkitLineClamp: 2,
+                                                            WebkitBoxOrient: "vertical",
+                                                            overflow: "hidden",
+                                                        }}
+                                                    >
+                                                        {q.text_short || "(sem enunciado)"}
+                                                    </Typography>
+                                                </Tooltip>
+                                            </TableCell>
+                                            <TableCell>
+                                                <SkillChip level={q.skill_level} />
+                                            </TableCell>
+                                            <TableCell>
+                                                {q.descriptor_code ? (
+                                                    <Tooltip title={q.descriptor_title ?? ""} arrow>
+                                                        <Chip size="small" variant="outlined" label={q.descriptor_code} />
+                                                    </Tooltip>
+                                                ) : (
+                                                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                                                        —
+                                                    </Typography>
+                                                )}
+                                            </TableCell>
+                                            <TableCell align="center">{q.answers}</TableCell>
+                                            <TableCell align="center">
+                                                <Chip size="small" color="success" variant="outlined" label={q.correct_option.toUpperCase()} />
+                                            </TableCell>
+                                            <TableCell sx={{ minWidth: 160 }}>
+                                                <AccuracyBar
+                                                    value={safeNumber(q.accuracy)}
+                                                    color={SKILL_COLOR[q.skill_level]}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <OptionDistributionBar
+                                                    dist={q.option_distribution}
+                                                    correct={q.correct_option as OptionLetter}
+                                                />
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
                     )}
                 </CardContent>
             </Card>
-
-            {/* Mais difíceis / Mais fáceis */}
-            <Grid container spacing={2}>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                    <Card>
-                        <CardContent>
-                            <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                                Mais difíceis
-                            </Typography>
-                            {hardest.length === 0 ? (
-                                <Alert severity="info">Ainda não há questões difíceis ranqueadas.</Alert>
-                            ) : (
-                                <Stack direction="row" spacing={1} flexWrap="wrap">
-                                    {hardest.map((qid: number) => (
-                                        <Chip key={qid} color="error" variant="outlined" label={`Q#${qid}`} />
-                                    ))}
-                                </Stack>
-                            )}
-                        </CardContent>
-                    </Card>
-                </Grid>
-
-                <Grid size={{ xs: 12, sm: 6 }}>
-                    <Card>
-                        <CardContent>
-                            <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                                Mais fáceis
-                            </Typography>
-                            {easiest.length === 0 ? (
-                                <Alert severity="info">Ainda não há questões fáceis ranqueadas.</Alert>
-                            ) : (
-                                <Stack direction="row" spacing={1} flexWrap="wrap">
-                                    {easiest.map((qid: number) => (
-                                        <Chip key={qid} color="success" variant="outlined" label={`Q#${qid}`} />
-                                    ))}
-                                </Stack>
-                            )}
-                        </CardContent>
-                    </Card>
-                </Grid>
-            </Grid>
         </Box>
     );
 }

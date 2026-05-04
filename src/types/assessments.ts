@@ -40,15 +40,82 @@ export interface AssessmentCreate {
 
 export type AssessmentUpdate = Partial<AssessmentCreate>;
 
-// Overview (mantido genérico, como estava)
+// Overview (contrato novo — backend devolve hardest/easiest como objetos
+// e by_question com text_short/descriptor/option_distribution)
+export interface OverviewOptionDistribution {
+    a: number;
+    b: number;
+    c: number;
+    d: number;
+    e: number;
+    blank: number;
+}
+
+export interface OverviewByQuestion {
+    question_id: number;
+    text_short: string;
+    skill_level: SkillLevel;
+    descriptor_id?: number | null;
+    descriptor_code?: string | null;
+    descriptor_title?: string | null;
+    weight: number;
+    correct_option: Option;
+    answers: number;
+    correct: number;
+    accuracy: number; // 0..1
+    option_distribution: OverviewOptionDistribution;
+}
+
+export interface OverviewRankedItem {
+    question_id: number;
+    text_short: string;
+    skill_level: SkillLevel;
+    descriptor_code?: string | null;
+    accuracy: number;
+    answers: number;
+}
+
+export interface OverviewRankCriteria {
+    top_n: number;
+    min_answers: number;
+    basis: string;
+}
+
+export interface OverviewBySkill {
+    skill_level: SkillLevel;
+    questions: number;
+    answers: number;
+    correct: number;
+    accuracy: number;
+    students_answered: number;
+}
+
 export interface AssessmentOverviewDTO {
-    assessment: Record<string, unknown>;
-    population: { students_in_class?: number; students_answered_any?: number; [key: string]: unknown };
-    overall: { total_questions?: number; total_answers?: number; correct?: number; accuracy?: number; [key: string]: unknown };
-    by_skill: Array<{ skill_level?: unknown; questions?: number; answers?: number; correct?: number; accuracy?: number; [key: string]: unknown }>;
-    by_question: Array<{ question_id?: number; answers?: number; correct?: number; accuracy?: number; [key: string]: unknown }>;
-    hardest: unknown;
-    easiest: unknown;
+    assessment: {
+        id: number;
+        class_id: number;
+        title: string;
+        date: string;
+        subject_kind?: SubjectKind;
+        subject_other?: string | null;
+    };
+    population: {
+        students_in_class: number;
+        students_answered_any: number;
+        participation_rate: number; // 0..1
+    };
+    overall: {
+        total_questions: number;
+        total_answers: number;
+        correct: number;
+        accuracy: number; // 0..1
+    };
+    by_skill: OverviewBySkill[];
+    by_question: OverviewByQuestion[];
+    hardest: OverviewRankedItem[];
+    easiest: OverviewRankedItem[];
+    hardest_criteria: OverviewRankCriteria;
+    easiest_criteria: OverviewRankCriteria;
 }
 
 // Matriz

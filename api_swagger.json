@@ -91,8 +91,14 @@
                     "type": "integer"
                 }
             ],
-            "delete": {
+            "get": {
                 "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/AssessmentOut"
+                        }
+                    },
                     "422": {
                         "description": "Validação"
                     },
@@ -106,7 +112,16 @@
                         "description": "Não autenticado"
                     }
                 },
-                "operationId": "delete_assessment_detail",
+                "operationId": "get_assessment_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
                 "tags": ["assessments"]
             },
             "get": {
@@ -144,12 +159,6 @@
             },
             "put": {
                 "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/AssessmentOut"
-                        }
-                    },
                     "422": {
                         "description": "Validação"
                     },
@@ -260,7 +269,7 @@
                     }
                 },
                 "summary": "Retorna visão geral (overview) de analytics de uma avaliação:",
-                "description": "- população (alunos na turma / que responderam pelo menos 1 questão)\n- geral (totais e acurácia)\n- por nível (by_skill)\n- por questão (by_question + distribuição por alternativa)\n- listas de hardest/easiest (3 ids por padrão)",
+                "description": "- assessment: id, class_id, title, date, subject_kind, subject_other.\n- population: students_in_class, students_answered_any, participation_rate (0..1).\n- overall: total_questions, total_answers, correct, accuracy.\n- by_skill[]: skill_level, questions, answers, correct, accuracy, students_answered.\n- by_question[]: question_id, text_short (~120 chars, fronteira de palavra),\n  skill_level, descriptor_id/code/title, weight, correct_option, answers, correct,\n  accuracy, option_distribution {a,b,c,d,e,blank}.\n- hardest/easiest: list[Object] com {question_id, text_short, skill_level,\n  descriptor_code, accuracy, answers}. Considera apenas questões com\n  `answers \u003E= min_answers` (default 5). Top N por padrão = 3.\n- hardest_criteria/easiest_criteria: {top_n, min_answers, basis} descrevendo a regra aplicada.\n\nAtenção (BREAKING vs versões anteriores):\n- `hardest`/`easiest` agora são objetos (não mais lista de IDs).\n- `top_options` foi substituído por `option_distribution` (que inclui `blank`).",
                 "operationId": "get_assessment_analytics_overview",
                 "parameters": [
                     {
@@ -723,7 +732,7 @@
             },
             "get": {
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "Success",
                         "schema": {
                             "$ref": "#/definitions/DescriptorOut"
@@ -770,10 +779,8 @@
                     }
                 ],
                 "tags": ["descriptors"]
-            }
-        },
-        "/healthz/": {
-            "get": {
+            },
+            "put": {
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -988,8 +995,14 @@
                     "type": "integer"
                 }
             ],
-            "delete": {
+            "get": {
                 "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/QuestionOut"
+                        }
+                    },
                     "404": {
                         "description": "Não encontrada"
                     },
@@ -998,12 +1011,18 @@
                     },
                     "401": {
                         "description": "Não autenticado"
-                    },
-                    "204": {
-                        "description": "Removida"
                     }
                 },
-                "operationId": "delete_question_detail",
+                "operationId": "get_question_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
                 "tags": ["questions"]
             },
             "get": {
@@ -1052,6 +1071,9 @@
                     },
                     "401": {
                         "description": "Não autenticado"
+                    },
+                    "204": {
+                        "description": "Removida"
                     }
                 },
                 "operationId": "put_question_detail",
@@ -1255,8 +1277,14 @@
                     "type": "integer"
                 }
             ],
-            "delete": {
+            "get": {
                 "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/StudentAnswerOut"
+                        }
+                    },
                     "404": {
                         "description": "Não encontrado"
                     },
@@ -1265,12 +1293,18 @@
                     },
                     "401": {
                         "description": "Não autenticado"
-                    },
-                    "204": {
-                        "description": "Removido"
                     }
                 },
-                "operationId": "delete_student_answer_detail",
+                "operationId": "get_student_answer_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
                 "tags": ["student-answers"]
             },
             "get": {
@@ -1322,6 +1356,9 @@
                     },
                     "401": {
                         "description": "Não autenticado"
+                    },
+                    "204": {
+                        "description": "Removido"
                     }
                 },
                 "operationId": "put_student_answer_detail",
@@ -1486,22 +1523,31 @@
                     "type": "integer"
                 }
             ],
-            "delete": {
+            "get": {
                 "responses": {
-                    "422": {
-                        "description": "Validação"
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/StudentOut"
+                        }
                     },
                     "404": {
                         "description": "Não encontrado"
                     },
                     "403": {
                         "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
                     }
                 },
-                "operationId": "delete_student_detail",
+                "operationId": "get_student_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
                 "tags": ["students"]
             },
             "get": {
@@ -1533,11 +1579,8 @@
             },
             "put": {
                 "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/StudentOut"
-                        }
+                    "422": {
+                        "description": "Validação"
                     },
                     "422": {
                         "description": "Validação"
@@ -1731,8 +1774,14 @@
                     "type": "integer"
                 }
             ],
-            "delete": {
+            "get": {
                 "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/TeacherOut"
+                        }
+                    },
                     "404": {
                         "description": "Não encontrado"
                     },
@@ -1741,12 +1790,19 @@
                     },
                     "401": {
                         "description": "Não autenticado"
-                    },
-                    "204": {
-                        "description": "Removido"
                     }
                 },
-                "operationId": "delete_teacher_detail",
+                "description": "Busca um professor pelo ID",
+                "operationId": "get_teacher_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
                 "tags": ["teachers"]
             },
             "get": {
@@ -1799,6 +1855,9 @@
                     },
                     "401": {
                         "description": "Não autenticado"
+                    },
+                    "204": {
+                        "description": "Removido"
                     }
                 },
                 "operationId": "put_teacher_detail",
