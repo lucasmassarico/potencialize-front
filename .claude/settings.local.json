@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npx tsc *)",
       "Bash(echo \"EXIT=$?\")",
-      "Bash(npx ecc-agentshield *)"
+      "Bash(npx ecc-agentshield *)",
+      "Bash(dir d:\\\\Projetos\\\\Potencialize\\\\potencialize-front)"
     ]
   }
 }
