@@ -124,7 +124,7 @@
                 ],
                 "tags": ["assessments"]
             },
-            "put": {
+            "get": {
                 "responses": {
                     "200": {
                         "description": "Success",
@@ -132,6 +132,33 @@
                             "$ref": "#/definitions/AssessmentOut"
                         }
                     },
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "get_assessment_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["assessments"]
+            },
+            "put": {
+                "responses": {
                     "422": {
                         "description": "Validação"
                     },
@@ -163,24 +190,6 @@
                         "description": "An optional fields mask"
                     }
                 ],
-                "tags": ["assessments"]
-            },
-            "delete": {
-                "responses": {
-                    "422": {
-                        "description": "Validação"
-                    },
-                    "404": {
-                        "description": "Não encontrado"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    }
-                },
-                "operationId": "delete_assessment_detail",
                 "tags": ["assessments"]
             }
         },
@@ -530,6 +539,15 @@
                     "type": "integer"
                 }
             ],
+            "delete": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "operationId": "delete_class_detail",
+                "tags": ["classes"]
+            },
             "get": {
                 "responses": {
                     "200": {
@@ -578,15 +596,6 @@
                         "description": "An optional fields mask"
                     }
                 ],
-                "tags": ["classes"]
-            },
-            "delete": {
-                "responses": {
-                    "200": {
-                        "description": "Success"
-                    }
-                },
-                "operationId": "delete_class_detail",
                 "tags": ["classes"]
             }
         },
@@ -712,9 +721,18 @@
                     "type": "integer"
                 }
             ],
+            "delete": {
+                "responses": {
+                    "204": {
+                        "description": "Removido"
+                    }
+                },
+                "operationId": "delete_descriptor_detail",
+                "tags": ["descriptors"]
+            },
             "get": {
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "Success",
                         "schema": {
                             "$ref": "#/definitions/DescriptorOut"
@@ -762,18 +780,7 @@
                 ],
                 "tags": ["descriptors"]
             },
-            "delete": {
-                "responses": {
-                    "204": {
-                        "description": "Removido"
-                    }
-                },
-                "operationId": "delete_descriptor_detail",
-                "tags": ["descriptors"]
-            }
-        },
-        "/healthz/": {
-            "get": {
+            "put": {
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -1018,6 +1025,36 @@
                 ],
                 "tags": ["questions"]
             },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/QuestionOut"
+                        }
+                    },
+                    "404": {
+                        "description": "Não encontrada"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "get_question_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["questions"]
+            },
             "put": {
                 "responses": {
                     "200": {
@@ -1034,6 +1071,9 @@
                     },
                     "401": {
                         "description": "Não autenticado"
+                    },
+                    "204": {
+                        "description": "Removida"
                     }
                 },
                 "operationId": "put_question_detail",
@@ -1054,24 +1094,6 @@
                         "description": "An optional fields mask"
                     }
                 ],
-                "tags": ["questions"]
-            },
-            "delete": {
-                "responses": {
-                    "404": {
-                        "description": "Não encontrada"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    },
-                    "204": {
-                        "description": "Removida"
-                    }
-                },
-                "operationId": "delete_question_detail",
                 "tags": ["questions"]
             }
         },
@@ -1285,6 +1307,36 @@
                 ],
                 "tags": ["student-answers"]
             },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/StudentAnswerOut"
+                        }
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "get_student_answer_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["student-answers"]
+            },
             "put": {
                 "responses": {
                     "200": {
@@ -1304,6 +1356,9 @@
                     },
                     "401": {
                         "description": "Não autenticado"
+                    },
+                    "204": {
+                        "description": "Removido"
                     }
                 },
                 "operationId": "put_student_answer_detail",
@@ -1324,24 +1379,6 @@
                         "description": "An optional fields mask"
                     }
                 ],
-                "tags": ["student-answers"]
-            },
-            "delete": {
-                "responses": {
-                    "404": {
-                        "description": "Não encontrado"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    },
-                    "204": {
-                        "description": "Removido"
-                    }
-                },
-                "operationId": "delete_student_answer_detail",
                 "tags": ["student-answers"]
             }
         },
@@ -1513,13 +1550,37 @@
                 ],
                 "tags": ["students"]
             },
-            "put": {
+            "get": {
                 "responses": {
                     "200": {
                         "description": "Success",
                         "schema": {
                             "$ref": "#/definitions/StudentOut"
                         }
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    }
+                },
+                "operationId": "get_student_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["students"]
+            },
+            "put": {
+                "responses": {
+                    "422": {
+                        "description": "Validação"
                     },
                     "422": {
                         "description": "Validação"
@@ -1552,24 +1613,6 @@
                         "description": "An optional fields mask"
                     }
                 ],
-                "tags": ["students"]
-            },
-            "delete": {
-                "responses": {
-                    "422": {
-                        "description": "Validação"
-                    },
-                    "404": {
-                        "description": "Não encontrado"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    }
-                },
-                "operationId": "delete_student_detail",
                 "tags": ["students"]
             }
         },
@@ -1762,6 +1805,37 @@
                 ],
                 "tags": ["teachers"]
             },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/TeacherOut"
+                        }
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "description": "Busca um professor pelo ID",
+                "operationId": "get_teacher_detail",
+                "parameters": [
+                    {
+                        "name": "X-Fields",
+                        "in": "header",
+                        "type": "string",
+                        "format": "mask",
+                        "description": "An optional fields mask"
+                    }
+                ],
+                "tags": ["teachers"]
+            },
             "put": {
                 "responses": {
                     "200": {
@@ -1781,6 +1855,9 @@
                     },
                     "401": {
                         "description": "Não autenticado"
+                    },
+                    "204": {
+                        "description": "Removido"
                     }
                 },
                 "operationId": "put_teacher_detail",
@@ -1801,24 +1878,6 @@
                         "description": "An optional fields mask"
                     }
                 ],
-                "tags": ["teachers"]
-            },
-            "delete": {
-                "responses": {
-                    "404": {
-                        "description": "Não encontrado"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    },
-                    "204": {
-                        "description": "Removido"
-                    }
-                },
-                "operationId": "delete_teacher_detail",
                 "tags": ["teachers"]
             }
         }
