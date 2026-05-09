@@ -4,6 +4,9 @@ export interface StudentResultsDTO {
     answers: Array<{
         answer_id: number;
         question_id: number;
+        display_order?: number;
+        text_short?: string;
+        display_label?: string;
         marked_option: "a" | "b" | "c" | "d" | "e";
         is_correct: boolean;
     }>;

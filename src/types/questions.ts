@@ -4,6 +4,10 @@ export type Option = "a" | "b" | "c" | "d" | "e";
 
 export interface QuestionOut {
     id: number;
+    question_id: number;
+    display_order: number;
+    text_short: string;
+    display_label: string;
     text: string;
     skill_level: SkillLevel;
     weight: number;
@@ -29,6 +33,15 @@ export interface QuestionCreate {
     correct_option: Option;
     assessment_id: number;
     descriptor_id?: number | null;
+    display_order?: number | null;
 }
 
-export type QuestionUpdate = Omit<QuestionOut, "id">;
+export interface QuestionUpdate {
+    text?: string;
+    skill_level?: SkillLevel;
+    weight?: number;
+    correct_option?: Option;
+    assessment_id?: number;
+    descriptor_id?: number | null;
+    display_order?: number | null;
+}

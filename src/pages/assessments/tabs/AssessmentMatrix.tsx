@@ -45,6 +45,8 @@ const STUDENT_COL_WIDTH = 260;
 const RESULT_COL_WIDTH = 200;
 const RESULT_COL_LEFT = STUDENT_COL_WIDTH;
 
+const questionNumberLabel = (q: MatrixQuestion): string => `Questão ${q.display_order ?? q.id}`;
+
 const predictedChipColor = (key?: string): "error" | "warning" | "info" | "success" | "default" => {
     switch ((key || "").toUpperCase()) {
         case "ABAIXO_BASICO":
@@ -221,7 +223,7 @@ export default function AssessmentMatrix() {
         });
     };
 
-    const renderHead = (q: MatrixQuestion, idx: number) => {
+    const renderHead = (q: MatrixQuestion) => {
         const lvl = q.skill_level as SkillLevel;
         const isHoveredCol = hover.q === q.id;
         return (
@@ -229,7 +231,13 @@ export default function AssessmentMatrix() {
                 key={q.id}
                 title={
                     <Box>
-                        <b>Q{idx + 1}</b> — peso {q.weight}
+                        <b>{questionNumberLabel(q)}</b> — peso {q.weight}
+                        {q.text_short && (
+                            <>
+                                <br />
+                                {q.text_short}
+                            </>
+                        )}
                         <br />
                         Nível: {SKILL_LABEL[lvl]}
                         <br />
@@ -253,7 +261,7 @@ export default function AssessmentMatrix() {
                 >
                     <Stack spacing={0.5} alignItems="center">
                         <Typography variant="caption" fontWeight={700}>
-                            Q{idx + 1}
+                            Q{q.display_order ?? q.id}
                         </Typography>
                         <Chip size="small" color={skillChipColor(lvl)} variant="filled" label={SKILL_LABEL[lvl]} />
                     </Stack>

@@ -108,7 +108,7 @@ export default function AnswersBulkDialog({ open, onClose }: Props) {
             <DialogContent dividers>
                 <Stack spacing={2}>
                     <Typography variant="body2">
-                        Formato: <b>student_id;question_id;marked_option</b> (A…E). Header é opcional.
+                        Formato: <b>student_id;question_id;marked_option</b> (A…E). Use o ID técnico da questão; header é opcional.
                     </Typography>
 
                     <TextField
@@ -140,7 +140,7 @@ export default function AnswersBulkDialog({ open, onClose }: Props) {
                                 <TableHead>
                                     <TableRow>
                                         <TableCell>Aluno (ID)</TableCell>
-                                        <TableCell>Questão (ID)</TableCell>
+                                        <TableCell>Questão (ID técnico)</TableCell>
                                         <TableCell>Marcada</TableCell>
                                     </TableRow>
                                 </TableHead>

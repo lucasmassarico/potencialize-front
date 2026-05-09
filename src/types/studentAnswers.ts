@@ -6,6 +6,9 @@ export interface StudentAnswerOut {
     id: number;
     student_id: number;
     question_id: number;
+    display_order?: number;
+    text_short?: string;
+    display_label?: string;
     marked_option: AnswerOption;
 }
 
@@ -22,6 +25,9 @@ export interface StudentAnswerUpdate {
 export interface StudentAssessmentResultAnswer {
     answer_id: number; // novo no backend
     question_id: number;
+    display_order?: number;
+    text_short?: string;
+    display_label?: string;
     marked_option: AnswerOption;
     is_correct?: boolean;
 }

@@ -32,6 +32,8 @@ interface Props {
     onClose: (changed: boolean) => void;
 }
 
+const questionNumberLabel = (q: MatrixQuestion): string => `Questão ${q.display_order ?? q.id}`;
+
 export default function StudentGradeDialog({ open, assessment, questions, students, onClose }: Props) {
     const [studentId, setStudentId] = React.useState<number | "">("");
     const [table, setTable] = React.useState<Record<number, { answerId?: number; marked?: AnswerOption }>>({});
@@ -175,11 +177,14 @@ export default function StudentGradeDialog({ open, assessment, questions, studen
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {questions.map((q, idx) => (
+                                {questions.map((q) => (
                                     <TableRow key={q.id}>
-                                        <TableCell>Q{idx + 1}</TableCell>
-                                        <TableCell title={`Nível: ${q.skill_level} | Correta: ${q.correct_option?.toUpperCase()}`}>
-                                            <Typography variant="body2" noWrap>
+                                        <TableCell>{questionNumberLabel(q)}</TableCell>
+                                        <TableCell title={`${q.display_label || questionNumberLabel(q)} | Nível: ${q.skill_level} | Correta: ${q.correct_option?.toUpperCase()}`}>
+                                            <Typography variant="body2" noWrap fontWeight={600}>
+                                                {q.text_short || q.display_label || questionNumberLabel(q)}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ opacity: 0.72 }} noWrap>
                                                 Nível: {q.skill_level} | Correta: {q.correct_option.toUpperCase()}
                                             </Typography>
                                         </TableCell>

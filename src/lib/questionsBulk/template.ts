@@ -14,6 +14,7 @@ function buildSampleRows(opts: TemplateOptions): Array<Record<string, string>> {
 
     return [
         {
+            [FRIENDLY_HEADERS.display_order]: "",
             [FRIENDLY_HEADERS.text]: "Quanto é 2 + 2?",
             [FRIENDLY_HEADERS.skill_level]: showSkill ? "Básico" : "",
             [FRIENDLY_HEADERS.weight]: showWeight ? "1" : "",
@@ -21,6 +22,7 @@ function buildSampleRows(opts: TemplateOptions): Array<Record<string, string>> {
             [FRIENDLY_HEADERS.descriptor_code]: code,
         },
         {
+            [FRIENDLY_HEADERS.display_order]: "",
             [FRIENDLY_HEADERS.text]: "Resolva o problema de multiplicação simples.",
             [FRIENDLY_HEADERS.skill_level]: showSkill ? "Adequado" : "",
             [FRIENDLY_HEADERS.weight]: showWeight ? "1.5" : "",
@@ -28,6 +30,7 @@ function buildSampleRows(opts: TemplateOptions): Array<Record<string, string>> {
             [FRIENDLY_HEADERS.descriptor_code]: "",
         },
         {
+            [FRIENDLY_HEADERS.display_order]: "",
             [FRIENDLY_HEADERS.text]: "Questão de raciocínio mais elaborada.",
             [FRIENDLY_HEADERS.skill_level]: showSkill ? "Avançado" : "",
             [FRIENDLY_HEADERS.weight]: showWeight ? "2" : "",
@@ -44,6 +47,7 @@ export async function buildTemplateWorkbook(
     const XLSX = await import("xlsx");
     const sampleCode = descriptors?.[0]?.code ?? "";
     const headers = [
+        FRIENDLY_HEADERS.display_order,
         FRIENDLY_HEADERS.text,
         FRIENDLY_HEADERS.skill_level,
         FRIENDLY_HEADERS.weight,
@@ -54,6 +58,7 @@ export async function buildTemplateWorkbook(
     const rows = buildSampleRows({ sampleDescriptorCode: sampleCode, weightMode });
     const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
     ws["!cols"] = [
+        { wch: 18 },
         { wch: 50 },
         { wch: 18 },
         { wch: 8 },
