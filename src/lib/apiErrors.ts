@@ -37,8 +37,18 @@ export const ROUTE_ERROR_RULES: RouteRule[] = [
 
     { name: "students_bulk", re: /^\/students\/bulk$/, methods: ["POST"], messages: { 404: "Turma não encontrada." } },
 
-    { name: "questions_bulk", re: /^\/questions\/bulk(?:\/\d+)?$/, methods: ["POST"], messages: { 404: "Avaliação não encontrada." } },
-    { name: "questions_detail", re: /^\/questions\/\d+$/, methods: ["GET", "PUT", "DELETE"], messages: { 404: "Questão não encontrada." } },
+    {
+        name: "questions_bulk",
+        re: /^\/questions\/bulk(?:\/\d+)?$/,
+        methods: ["POST"],
+        messages: { 404: "Avaliação não encontrada.", 409: "A numeração das questões está bloqueada porque a avaliação já possui respostas." },
+    },
+    {
+        name: "questions_detail",
+        re: /^\/questions\/\d+$/,
+        methods: ["GET", "PUT", "DELETE"],
+        messages: { 404: "Questão não encontrada.", 409: "A numeração das questões está bloqueada porque a avaliação já possui respostas." },
+    },
 
     { name: "assessments_matrix", re: /^\/assessments\/\d+\/analytics\/matrix$/, methods: ["GET"], messages: { 404: "Avaliação não encontrada." } },
     { name: "assessments_overview", re: /^\/assessments\/\d+\/analytics\/overview$/, methods: ["GET"], messages: { 404: "Avaliação não encontrada." } },

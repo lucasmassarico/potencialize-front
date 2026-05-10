@@ -35,7 +35,6 @@ import {
     useTheme,
 } from "@mui/material";
 import { BarChart } from "@mui/x-charts/BarChart";
-import { PieChart } from "@mui/x-charts/PieChart";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import DownloadIcon from "@mui/icons-material/Download";
 import PrintIcon from "@mui/icons-material/Print";
@@ -99,6 +98,9 @@ const formatPercent = (v: number | null | undefined, digits = 1): string => {
 };
 
 const safeNumber = (v: number | undefined | null): number => (Number.isFinite(v as number) ? (v as number) : 0);
+
+const questionNumberLabel = (q: { display_order?: number; question_id: number }): string =>
+    `Questão ${q.display_order ?? q.question_id}`;
 
 const subjectLabel = (kind?: string, other?: string | null): string | null => {
     if (!kind) return null;
@@ -266,7 +268,7 @@ function RankedQuestionCard({ item, accent }: { item: OverviewRankedItem; accent
                 <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} flexWrap="wrap">
                     <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                         <Typography variant="body2" fontWeight={700}>
-                            Q#{item.question_id}
+                            {questionNumberLabel(item)}
                         </Typography>
                         <SkillChip level={item.skill_level} />
                         {item.descriptor_code && <Chip size="small" variant="outlined" label={item.descriptor_code} />}
@@ -301,18 +303,10 @@ function AssessmentOverviewSkeleton() {
                 ))}
             </Grid>
             <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 7 }}>
+                <Grid size={{ xs: 12, md: 12 }}>
                     <Card>
                         <CardContent>
                             <Skeleton width={180} height={28} />
-                            <Skeleton variant="rounded" height={220} sx={{ mt: 1 }} />
-                        </CardContent>
-                    </Card>
-                </Grid>
-                <Grid size={{ xs: 12, md: 5 }}>
-                    <Card>
-                        <CardContent>
-                            <Skeleton width={140} height={28} />
                             <Skeleton variant="rounded" height={220} sx={{ mt: 1 }} />
                         </CardContent>
                     </Card>
@@ -391,15 +385,15 @@ export default function AssessmentOverview() {
             if (skillFilter !== "all" && q.skill_level !== skillFilter) return false;
             if (descriptorFilter !== "all" && String(q.descriptor_id ?? "") !== descriptorFilter) return false;
             if (term) {
-                const haystack = `${q.question_id} ${q.text_short ?? ""} ${q.descriptor_code ?? ""} ${q.descriptor_title ?? ""}`.toLowerCase();
+                const haystack = `${q.display_order} ${q.display_label ?? ""} ${q.question_id} ${q.text_short ?? ""} ${q.descriptor_code ?? ""} ${q.descriptor_title ?? ""}`.toLowerCase();
                 if (!haystack.includes(term)) return false;
             }
             return true;
         });
         const dir = sortDir === "asc" ? 1 : -1;
         return list.sort((a, b) => {
-            const av = sortKey === "id" ? a.question_id : sortKey === "answers" ? a.answers : a.accuracy;
-            const bv = sortKey === "id" ? b.question_id : sortKey === "answers" ? b.answers : b.accuracy;
+            const av = sortKey === "id" ? (a.display_order ?? a.question_id) : sortKey === "answers" ? a.answers : a.accuracy;
+            const bv = sortKey === "id" ? (b.display_order ?? b.question_id) : sortKey === "answers" ? b.answers : b.accuracy;
             return (av - bv) * dir;
         });
     }, [ov, search, skillFilter, descriptorFilter, sortKey, sortDir]);
@@ -433,7 +427,7 @@ export default function AssessmentOverview() {
         setExportAnchor(null);
         const header = ["#", "Enunciado", "Nível", "Descritor", "Peso", "Gabarito", "Respondidas", "Corretas", "Acerto (%)", "A", "B", "C", "D", "E", "Branco"];
         const rows = ov.by_question.map((q) => [
-            q.question_id,
+            q.display_order ?? q.question_id,
             q.text_short ?? "",
             SKILL_LABELS[q.skill_level],
             q.descriptor_code ?? "",
@@ -490,7 +484,7 @@ export default function AssessmentOverview() {
         const questionsSheet = [
             ["#", "Enunciado", "Nível", "Descritor", "Título do descritor", "Peso", "Gabarito", "Respondidas", "Corretas", "Acerto (%)", "A", "B", "C", "D", "E", "Branco"],
             ...ov.by_question.map((q) => [
-                q.question_id,
+                q.display_order ?? q.question_id,
                 q.text_short ?? "",
                 SKILL_LABELS[q.skill_level],
                 q.descriptor_code ?? "",
@@ -512,7 +506,7 @@ export default function AssessmentOverview() {
 
         const rankedHeader = ["#", "Enunciado", "Nível", "Descritor", "Acerto (%)", "Respondidas"];
         const toRankedRow = (q: OverviewRankedItem) => [
-            q.question_id,
+            q.display_order ?? q.question_id,
             q.text_short ?? "",
             SKILL_LABELS[q.skill_level],
             q.descriptor_code ?? "",
@@ -533,7 +527,6 @@ export default function AssessmentOverview() {
     const skillsBarLabels = skillsSorted.map((s) => SKILL_LABELS[s.skill_level]);
     const skillsBarValues = skillsSorted.map((s) => Number((s.accuracy * 100).toFixed(1)));
     const skillsBarColors = skillsSorted.map((s) => theme.palette[SKILL_COLOR[s.skill_level]].main);
-    const notAnswered = Math.max(0, studentsTotal - studentsAnswered);
     const dateLabel = ov.assessment.date ? new Date(`${ov.assessment.date}T00:00:00`).toLocaleDateString("pt-BR") : null;
 
     return (
@@ -567,7 +560,7 @@ export default function AssessmentOverview() {
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <KPICard
                         title="Questão crítica"
-                        value={hardestTop ? `Q#${hardestTop.question_id}` : "—"}
+                        value={hardestTop ? questionNumberLabel(hardestTop) : "—"}
                         subtitle={hardestTop ? `${formatPercent(hardestTop.accuracy)} de acerto · ${hardestTop.answers} respostas` : "Sem dados suficientes"}
                         color="error"
                     />
@@ -624,7 +617,7 @@ export default function AssessmentOverview() {
             </Stack>
 
             <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 7 }}>
+                <Grid size={{ xs: 12, md: 12 }}>
                     <Card>
                         <CardContent>
                             <Typography variant="subtitle1" fontWeight={700} gutterBottom>
@@ -673,48 +666,6 @@ export default function AssessmentOverview() {
                                     </Stack>
                                 ))}
                             </Stack>
-                        </CardContent>
-                    </Card>
-                </Grid>
-
-                <Grid size={{ xs: 12, md: 5 }}>
-                    <Card>
-                        <CardContent>
-                            <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                                Participação
-                            </Typography>
-                            {studentsTotal === 0 ? (
-                                <Alert severity="info">Sem alunos cadastrados na turma.</Alert>
-                            ) : (
-                                <PieChart
-                                    height={220}
-                                    series={[
-                                        {
-                                            innerRadius: 50,
-                                            outerRadius: 90,
-                                            paddingAngle: 2,
-                                            cornerRadius: 4,
-                                            data: [
-                                                {
-                                                    id: "answered",
-                                                    value: studentsAnswered,
-                                                    label: "Responderam",
-                                                    color: theme.palette.success.main,
-                                                },
-                                                {
-                                                    id: "missing",
-                                                    value: notAnswered,
-                                                    label: "Sem resposta",
-                                                    color: theme.palette.grey[400],
-                                                },
-                                            ],
-                                        },
-                                    ]}
-                                />
-                            )}
-                            <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center", mt: 1 }}>
-                                {formatPercent(participation)} dos alunos responderam ao menos uma questão
-                            </Typography>
                         </CardContent>
                     </Card>
                 </Grid>
@@ -782,7 +733,7 @@ export default function AssessmentOverview() {
                         <Stack className="no-print" direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ minWidth: { md: 560 } }}>
                             <TextField
                                 size="small"
-                                placeholder="Buscar enunciado, descritor, ID…"
+                                placeholder="Buscar enunciado, descritor, número…"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 InputProps={{
@@ -879,7 +830,7 @@ export default function AssessmentOverview() {
                                         <TableRow key={q.question_id} hover>
                                             <TableCell sx={{ whiteSpace: "nowrap" }}>
                                                 <Typography variant="body2" fontWeight={600}>
-                                                    Q#{q.question_id}
+                                                    {questionNumberLabel(q)}
                                                 </Typography>
                                             </TableCell>
                                             <TableCell sx={{ maxWidth: 360 }}>

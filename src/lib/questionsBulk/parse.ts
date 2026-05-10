@@ -3,6 +3,7 @@ import type { DescriptorOut } from "../../types/descriptors";
 import { parseSkillLevel } from "../skillLevels";
 
 export interface BulkRowDraft {
+    display_order: number | null;
     text: string;
     skill_level: SkillLevel | null;
     weight: number | null;
@@ -20,6 +21,7 @@ export interface BulkRowError {
 export type WeightMode = "per_question" | "by_skill" | string | undefined;
 
 export const FRIENDLY_HEADERS = {
+    display_order: "Número da questão",
     text: "Enunciado",
     skill_level: "Nível",
     weight: "Peso",
@@ -28,6 +30,7 @@ export const FRIENDLY_HEADERS = {
 } as const;
 
 const HEADER_ALIASES: Record<keyof BulkRowDraft, string[]> = {
+    display_order: ["numero da questao", "número da questão", "numero", "número", "ordem", "display_order", "question_number"],
     text: ["enunciado", "questao", "questão", "texto", "text"],
     skill_level: ["nivel", "nível", "nivel da questao", "nível da questão", "skill_level"],
     weight: ["peso", "weight"],
@@ -54,6 +57,7 @@ function normalize(input: string): string {
 
 function emptyDraft(): BulkRowDraft {
     return {
+        display_order: null,
         text: "",
         skill_level: null,
         weight: null,
@@ -91,6 +95,12 @@ function parseWeight(raw: unknown): number | null {
     return Number.isFinite(n) ? n : null;
 }
 
+function parseDisplayOrder(raw: unknown): number | null {
+    if (raw === null || raw === undefined || raw === "") return null;
+    const n = Number(String(raw).trim().replace(",", "."));
+    return Number.isInteger(n) && n > 0 ? n : Number.NaN;
+}
+
 function buildDescriptorCodeIndex(descriptors: DescriptorOut[] | undefined) {
     const map = new Map<string, DescriptorOut>();
     (descriptors ?? []).forEach((d) => map.set(d.code.toLowerCase().trim(), d));
@@ -104,6 +114,9 @@ function rowToDraft(record: Record<string, unknown>): BulkRowDraft {
         if (!field) continue;
         const value = rawValue == null ? "" : String(rawValue).trim();
         switch (field) {
+            case "display_order":
+                draft.display_order = parseDisplayOrder(value);
+                break;
             case "text":
                 draft.text = value;
                 break;
@@ -251,6 +264,14 @@ export function validateAndResolve(
         const row = idx + 1;
         const resolved: BulkRowDraft = { ...draft };
 
+        if (resolved.display_order !== null && (!Number.isInteger(resolved.display_order) || resolved.display_order <= 0)) {
+            errors.push({
+                row,
+                field: "display_order",
+                message: "Número da questão deve ser um inteiro maior que zero.",
+            });
+        }
+
         if (!resolved.text || resolved.text.trim() === "") {
             errors.push({ row, field: "text", message: "Enunciado é obrigatório." });
         }
@@ -303,6 +324,7 @@ export function validateAndResolve(
         const rowHasError = errors.some((e) => e.row === row);
         if (!rowHasError && resolved.skill_level && resolved.correct_option && resolved.weight !== null) {
             items.push({
+                ...(resolved.display_order !== null ? { display_order: resolved.display_order } : {}),
                 text: resolved.text.trim(),
                 skill_level: resolved.skill_level,
                 weight: resolved.weight,

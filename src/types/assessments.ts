@@ -53,7 +53,9 @@ export interface OverviewOptionDistribution {
 
 export interface OverviewByQuestion {
     question_id: number;
+    display_order: number;
     text_short: string;
+    display_label: string;
     skill_level: SkillLevel;
     descriptor_id?: number | null;
     descriptor_code?: string | null;
@@ -68,7 +70,9 @@ export interface OverviewByQuestion {
 
 export interface OverviewRankedItem {
     question_id: number;
+    display_order: number;
     text_short: string;
+    display_label: string;
     skill_level: SkillLevel;
     descriptor_code?: string | null;
     accuracy: number;
@@ -121,6 +125,10 @@ export interface AssessmentOverviewDTO {
 // Matriz
 export interface MatrixQuestion {
     id: number;
+    question_id: number;
+    display_order: number;
+    text_short: string;
+    display_label: string;
     skill_level: SkillLevel;
     weight: number;
     correct_option: Option;

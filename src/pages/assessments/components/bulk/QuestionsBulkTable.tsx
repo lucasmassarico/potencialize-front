@@ -61,6 +61,7 @@ export default function QuestionsBulkTable({
     const isBySkill = weightMode === "by_skill";
     const showSkillCol = isBySkill;
     const showWeightCol = isPerQuestion;
+    const emptyColSpan = 6 + (showSkillCol ? 1 : 0) + (showWeightCol ? 1 : 0);
 
     const rowRefs = React.useRef<Array<HTMLTableRowElement | null>>([]);
 
@@ -119,6 +120,7 @@ export default function QuestionsBulkTable({
                     <TableHead>
                         <TableRow>
                             <TableCell width={48}>#</TableCell>
+                            <TableCell width={120}>Número</TableCell>
                             <TableCell>Enunciado</TableCell>
                             {showSkillCol && <TableCell width={170}>Nível</TableCell>}
                             {showWeightCol && <TableCell width={110}>Peso</TableCell>}
@@ -132,7 +134,7 @@ export default function QuestionsBulkTable({
                     <TableBody>
                         {drafts.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={7}>
+                                <TableCell colSpan={emptyColSpan}>
                                     <Box sx={{ textAlign: "center", py: 4 }}>
                                         <Typography variant="body2" color="text.secondary" mb={1}>
                                             Nenhuma linha. Adicione manualmente, importe uma planilha ou cole texto CSV.
@@ -171,6 +173,24 @@ export default function QuestionsBulkTable({
                                         <Typography variant="caption" fontWeight={700}>
                                             {idx + 1}
                                         </Typography>
+                                    </TableCell>
+
+                                    <TableCell sx={{ verticalAlign: "top" }}>
+                                        <TextField
+                                            fullWidth
+                                            size="small"
+                                            type="number"
+                                            inputProps={{ min: 1, step: 1 }}
+                                            value={typeof row.display_order === "number" && Number.isNaN(row.display_order) ? "" : row.display_order ?? ""}
+                                            onChange={(e) => {
+                                                const v = e.target.value;
+                                                updateRow(idx, {
+                                                    display_order: v === "" ? null : Number(v),
+                                                });
+                                            }}
+                                            error={fieldHasError(rowErrors, "display_order")}
+                                            helperText={fieldHelperText(rowErrors, "display_order") || "Opcional"}
+                                        />
                                     </TableCell>
 
                                     <TableCell sx={{ verticalAlign: "top" }}>

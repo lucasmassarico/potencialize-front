@@ -21,7 +21,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { QuestionOut, SkillLevel, Option } from "../../../types/questions";
+import type { QuestionCreate, QuestionOut, SkillLevel, Option } from "../../../types/questions";
 import type { DescriptorOut } from "../../../types/descriptors";
 import { createQuestion, updateQuestion } from "../../../api/questions";
 import { getAssessment } from "../../../api/assessments";
@@ -31,6 +31,11 @@ import { useAllDescriptors } from "../../../hooks/useDescriptors";
 import { SKILL_LABEL, SKILL_LEVELS } from "../../../lib/skillLevels";
 
 const schema = z.object({
+    display_order: z.preprocess(
+        (value) => (value === "" || value === null || value === undefined ? undefined : value),
+        z.coerce.number().int("Informe um número inteiro").positive("Número da questão deve ser maior que zero").optional(),
+    ),
+
     text: z.string().min(1, "Informe o enunciado"),
 
     skill_level: z.enum(["abaixo", "basico", "adequado", "avancado"]),
@@ -78,6 +83,7 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
     } = useForm<FormInput, unknown, FormOutput>({
         resolver: zodResolver(schema),
         defaultValues: {
+            display_order: undefined,
             text: "",
             skill_level: "basico", // Valor fixo ao criar, quando o campo não aparece
             weight: 1,
@@ -87,6 +93,7 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
 
     React.useEffect(() => {
         reset({
+            display_order: initial?.display_order ?? undefined,
             text: initial?.text ?? "",
             skill_level: initial?.skill_level ?? "basico", // Valores fixos, quando oculto
             weight: initial?.weight ?? 1,
@@ -112,7 +119,7 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
 
         const weightToSend = isPerQuestion ? values.weight : 1; // Envia o peso quando for "per_question"
 
-        const payload = {
+        const payload: QuestionCreate = {
             text: values.text,
             skill_level: isBySkill ? values.skill_level : "basico", // Envia "basico" quando não for "by_skill"
             weight: weightToSend,
@@ -120,6 +127,9 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
             assessment_id: assessmentId,
             descriptor_id: descriptor?.id ?? null,
         };
+        if (values.display_order !== undefined) {
+            payload.display_order = values.display_order;
+        }
 
         try {
             if (isEdit) await updateQuestion(initial!.id, payload);
@@ -138,6 +148,21 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
             <DialogTitle>{isEdit ? "Editar questão" : "Nova questão"}</DialogTitle>
             <DialogContent dividers>
                 <Stack spacing={2} sx={{ mt: 1 }}>
+                    <TextField
+                        label="Número da questão"
+                        type="number"
+                        fullWidth
+                        inputProps={{ min: 1, step: 1 }}
+                        {...register("display_order")}
+                        error={!!errors.display_order}
+                        helperText={
+                            errors.display_order?.message ||
+                            (isEdit
+                                ? "Altere apenas se quiser reposicionar a questão."
+                                : "Opcional. Em branco, o sistema usa o menor número disponível.")
+                        }
+                    />
+
                     <TextField
                         label="Enunciado"
                         fullWidth

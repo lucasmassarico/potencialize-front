@@ -2,6 +2,7 @@ import { Alert, AlertTitle, Box, Chip, Stack, Typography } from "@mui/material";
 import type { BulkRowDraft, BulkRowError } from "../../../../lib/questionsBulk/parse";
 
 const FIELD_LABEL: Record<keyof BulkRowDraft | "row", string> = {
+    display_order: "Número da questão",
     text: "Enunciado",
     skill_level: "Nível",
     weight: "Peso",

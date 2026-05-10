@@ -50,6 +50,14 @@ import type { QuestionList } from "../../../types/questions";
 
 const OPTION_OPTS: Option[] = ["a", "b", "c", "d", "e"];
 
+function questionNumberLabel(q: Pick<QuestionOut, "display_order">) {
+    return `Questão ${q.display_order}`;
+}
+
+function questionDisplayLabel(q: Pick<QuestionOut, "display_order" | "display_label" | "text">) {
+    return q.display_label || `${q.display_order} - ${q.text}`;
+}
+
 function CardsSkeleton() {
     return (
         <Grid container spacing={2}>
@@ -112,7 +120,7 @@ export default function AssessmentQuestions() {
                 skill_level: isBySkill ? skill || undefined : undefined,
                 correct_option: opt || undefined,
                 descriptor_id: descriptor ?? undefined,
-                sort: "id",
+                sort: "display_order,id",
             }),
         enabled: !!assessmentId,
         placeholderData: keepPreviousData,
@@ -130,7 +138,9 @@ export default function AssessmentQuestions() {
     const items = React.useMemo(() => {
         const text = q.trim().toLowerCase();
         if (!text) return data?.items || [];
-        return (data?.items || []).filter((it) => it.text?.toLowerCase().includes(text));
+        return (data?.items || []).filter((it) =>
+            `${it.display_order} ${it.display_label ?? ""} ${it.text ?? ""}`.toLowerCase().includes(text),
+        );
     }, [data, q]);
 
     const [formOpen, setFormOpen] = React.useState(false);
@@ -277,7 +287,7 @@ export default function AssessmentQuestions() {
                     {isLoading &&
                         (isMdUp ? (
                             <TableSkeleton
-                                headers={["ID", "Texto", ...(isBySkill ? ["Nível"] : []), ...(isPerQuestion ? ["Peso"] : []), "Correta", "Descritor", "Ações"]}
+                                headers={["Questão", "Texto", ...(isBySkill ? ["Nível"] : []), ...(isPerQuestion ? ["Peso"] : []), "Correta", "Descritor", "Ações"]}
                                 rows={8}
                             />
                         ) : (
@@ -313,11 +323,11 @@ export default function AssessmentQuestions() {
                                                         setFormOpen(true);
                                                     }}
                                                     sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}
-                                                    aria-label={`Editar questão #${q.id}`}
+                                                    aria-label={`Editar ${questionNumberLabel(q)}`}
                                                 >
                                                     <Box sx={{ minWidth: 0 }}>
                                                         <Typography fontWeight={700} noWrap title={q.text}>
-                                                            #{q.id} — {q.text}
+                                                            {questionDisplayLabel(q)}
                                                         </Typography>
                                                         <Stack direction="row" spacing={1} mt={0.75} sx={{ alignItems: "center" }}>
                                                             {/* 👇 Chip de Nível só quando by_skill */}
@@ -376,7 +386,7 @@ export default function AssessmentQuestions() {
                                     <Table size="small" aria-label="Lista de questões">
                                         <TableHead>
                                             <TableRow>
-                                                <TableCell width={64}>ID</TableCell>
+                                                <TableCell width={100}>Questão</TableCell>
                                                 <TableCell>Texto</TableCell>
                                                 {isBySkill && <TableCell width={160}>Nível</TableCell>}
                                                 {isPerQuestion && <TableCell width={100}>Peso</TableCell>}
@@ -420,9 +430,9 @@ export default function AssessmentQuestions() {
                                                             setFormOpen(true);
                                                         }
                                                     }}
-                                                    aria-label={`Editar questão #${q.id}`}
+                                                    aria-label={`Editar ${questionNumberLabel(q)}`}
                                                 >
-                                                    <TableCell>#{q.id}</TableCell>
+                                                    <TableCell>{questionNumberLabel(q)}</TableCell>
                                                     <TableCell sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                                                         <MUILink
                                                             underline="hover"
@@ -505,7 +515,7 @@ export default function AssessmentQuestions() {
             <ConfirmDialog
                 open={confirmOpen}
                 title="Remover questão?"
-                description={toDelete ? `Tem certeza que deseja remover a questão #${toDelete.id}?` : undefined}
+                description={toDelete ? `Tem certeza que deseja remover a ${questionNumberLabel(toDelete)}?` : undefined}
                 confirmText="Remover"
                 onConfirm={handleDelete}
                 onClose={() => setConfirmOpen(false)}
