@@ -67,6 +67,16 @@ export interface ReportQuestionRow {
     accuracyLabel: string;
     accuracyValue: number;
     distribution: string;
+    distributionValues: ReportOptionDistribution[];
+    distributionTotal: number;
+}
+
+export type ReportOptionLabel = Uppercase<(typeof OPTION_LETTERS)[number]> | "Branco";
+
+export interface ReportOptionDistribution {
+    option: ReportOptionLabel;
+    count: number;
+    isCorrect: boolean;
 }
 
 export interface ReportRankingRow {
@@ -158,6 +168,19 @@ export const formatDistribution = (question: OverviewByQuestion): string =>
         `Branco: ${safeNumber(question.option_distribution.blank)}`,
     ].join(" | ");
 
+const toDistributionValues = (question: OverviewByQuestion): ReportOptionDistribution[] => [
+    ...OPTION_LETTERS.map((option) => ({
+        option: option.toUpperCase() as ReportOptionLabel,
+        count: safeNumber(question.option_distribution[option]),
+        isCorrect: option === question.correct_option,
+    })),
+    {
+        option: "Branco",
+        count: safeNumber(question.option_distribution.blank),
+        isCorrect: false,
+    },
+];
+
 const toSkillRows = (overview: AssessmentOverviewDTO): ReportSkillRow[] =>
     [...overview.by_skill]
         .sort((a, b) => SKILL_ORDER[a.skill_level] - SKILL_ORDER[b.skill_level])
@@ -174,21 +197,28 @@ const toSkillRows = (overview: AssessmentOverviewDTO): ReportSkillRow[] =>
 const toQuestionRows = (overview: AssessmentOverviewDTO): ReportQuestionRow[] =>
     [...overview.by_question]
         .sort((a, b) => (a.display_order ?? a.question_id) - (b.display_order ?? b.question_id))
-        .map((question) => ({
-            id: question.question_id,
-            number: questionNumberLabel(question),
-            text: question.text_short?.trim() || "(sem enunciado)",
-            level: SKILL_LABELS[question.skill_level],
-            descriptor: question.descriptor_code?.trim() || "-",
-            descriptorTitle: question.descriptor_title?.trim() || "",
-            weight: safeNumber(question.weight),
-            correctOption: question.correct_option.toUpperCase(),
-            answers: safeNumber(question.answers),
-            correct: safeNumber(question.correct),
-            accuracyLabel: formatPercent(question.accuracy),
-            accuracyValue: clampRatio(safeNumber(question.accuracy)),
-            distribution: formatDistribution(question),
-        }));
+        .map((question) => {
+            const distributionValues = toDistributionValues(question);
+            const distributionTotal = distributionValues.reduce((total, item) => total + item.count, 0);
+
+            return {
+                id: question.question_id,
+                number: questionNumberLabel(question),
+                text: question.text_short?.trim() || "(sem enunciado)",
+                level: SKILL_LABELS[question.skill_level],
+                descriptor: question.descriptor_code?.trim() || "-",
+                descriptorTitle: question.descriptor_title?.trim() || "",
+                weight: safeNumber(question.weight),
+                correctOption: question.correct_option.toUpperCase(),
+                answers: safeNumber(question.answers),
+                correct: safeNumber(question.correct),
+                accuracyLabel: formatPercent(question.accuracy),
+                accuracyValue: clampRatio(safeNumber(question.accuracy)),
+                distribution: formatDistribution(question),
+                distributionValues,
+                distributionTotal,
+            };
+        });
 
 const toRankingRows = (items: OverviewRankedItem[]): ReportRankingRow[] =>
     [...items]
