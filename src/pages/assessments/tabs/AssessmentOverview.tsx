@@ -9,7 +9,6 @@ import {
     CardContent,
     Chip,
     FormControl,
-    GlobalStyles,
     Grid,
     InputAdornment,
     InputLabel,
@@ -37,7 +36,7 @@ import {
 import { BarChart } from "@mui/x-charts/BarChart";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import DownloadIcon from "@mui/icons-material/Download";
-import PrintIcon from "@mui/icons-material/Print";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 
@@ -325,19 +324,6 @@ function AssessmentOverviewSkeleton() {
 type SortKey = "id" | "accuracy" | "answers";
 type SortDir = "asc" | "desc";
 
-const printStyles = {
-    "@media print": {
-        "body *": { visibility: "hidden" as const },
-        ".assessment-overview-print, .assessment-overview-print *": { visibility: "visible" as const },
-        ".assessment-overview-print": {
-            position: "absolute" as const,
-            inset: 0,
-            padding: "16px",
-        },
-        ".no-print": { display: "none !important" as const },
-    },
-};
-
 export default function AssessmentOverview() {
     const { assessmentId } = useParams<{ assessmentId: string }>();
     const theme = useTheme();
@@ -353,6 +339,8 @@ export default function AssessmentOverview() {
     const [sortKey, setSortKey] = useState<SortKey>("accuracy");
     const [sortDir, setSortDir] = useState<SortDir>("asc");
     const [exportAnchor, setExportAnchor] = useState<HTMLElement | null>(null);
+    const [isPdfExporting, setIsPdfExporting] = useState(false);
+    const [pdfExportError, setPdfExportError] = useState<string | null>(null);
 
     const ov: AssessmentOverviewDTO | undefined = data;
 
@@ -519,9 +507,18 @@ export default function AssessmentOverview() {
         XLSX.writeFile(wb, `${filenameBase}.xlsx`);
     };
 
-    const handlePrint = () => {
+    const handleExportPDF = async () => {
         setExportAnchor(null);
-        window.print();
+        setPdfExportError(null);
+        setIsPdfExporting(true);
+        try {
+            const { exportAssessmentOverviewPdf } = await import("../utils/assessmentOverviewPdf");
+            exportAssessmentOverviewPdf(ov);
+        } catch {
+            setPdfExportError("Não foi possível gerar o PDF. Tente novamente.");
+        } finally {
+            setIsPdfExporting(false);
+        }
     };
 
     const skillsBarLabels = skillsSorted.map((s) => SKILL_LABELS[s.skill_level]);
@@ -530,9 +527,7 @@ export default function AssessmentOverview() {
     const dateLabel = ov.assessment.date ? new Date(`${ov.assessment.date}T00:00:00`).toLocaleDateString("pt-BR") : null;
 
     return (
-        <Box className="assessment-overview-print" sx={{ display: "grid", gap: 2 }}>
-            <GlobalStyles styles={printStyles} />
-
+        <Box sx={{ display: "grid", gap: 2 }}>
             <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <KPICard
@@ -586,14 +581,21 @@ export default function AssessmentOverview() {
                         onClick={(e) => setExportAnchor(e.currentTarget)}
                         aria-haspopup="menu"
                         aria-expanded={Boolean(exportAnchor)}
+                        disabled={isPdfExporting}
                     >
-                        Exportar
+                        {isPdfExporting ? "Gerando..." : "Exportar"}
                     </Button>
                     <Menu
                         anchorEl={exportAnchor}
                         open={Boolean(exportAnchor)}
                         onClose={() => setExportAnchor(null)}
                     >
+                        <MenuItem onClick={handleExportPDF} disabled={isPdfExporting}>
+                            <ListItemIcon>
+                                <PictureAsPdfOutlinedIcon fontSize="small" />
+                            </ListItemIcon>
+                            PDF
+                        </MenuItem>
                         <MenuItem onClick={handleExportXLSX}>
                             <ListItemIcon>
                                 <TableChartOutlinedIcon fontSize="small" />
@@ -606,15 +608,15 @@ export default function AssessmentOverview() {
                             </ListItemIcon>
                             CSV
                         </MenuItem>
-                        <MenuItem onClick={handlePrint}>
-                            <ListItemIcon>
-                                <PrintIcon fontSize="small" />
-                            </ListItemIcon>
-                            Imprimir
-                        </MenuItem>
                     </Menu>
                 </Stack>
             </Stack>
+
+            {pdfExportError && (
+                <Alert className="no-print" severity="error" onClose={() => setPdfExportError(null)}>
+                    {pdfExportError}
+                </Alert>
+            )}
 
             <Grid container spacing={2}>
                 <Grid size={{ xs: 12, md: 12 }}>
