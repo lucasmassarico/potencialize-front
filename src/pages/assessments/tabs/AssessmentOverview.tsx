@@ -35,7 +35,6 @@ import {
     useTheme,
 } from "@mui/material";
 import { BarChart } from "@mui/x-charts/BarChart";
-import { PieChart } from "@mui/x-charts/PieChart";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import DownloadIcon from "@mui/icons-material/Download";
 import PrintIcon from "@mui/icons-material/Print";
@@ -304,18 +303,10 @@ function AssessmentOverviewSkeleton() {
                 ))}
             </Grid>
             <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 7 }}>
+                <Grid size={{ xs: 12, md: 12 }}>
                     <Card>
                         <CardContent>
                             <Skeleton width={180} height={28} />
-                            <Skeleton variant="rounded" height={220} sx={{ mt: 1 }} />
-                        </CardContent>
-                    </Card>
-                </Grid>
-                <Grid size={{ xs: 12, md: 5 }}>
-                    <Card>
-                        <CardContent>
-                            <Skeleton width={140} height={28} />
                             <Skeleton variant="rounded" height={220} sx={{ mt: 1 }} />
                         </CardContent>
                     </Card>
@@ -536,7 +527,6 @@ export default function AssessmentOverview() {
     const skillsBarLabels = skillsSorted.map((s) => SKILL_LABELS[s.skill_level]);
     const skillsBarValues = skillsSorted.map((s) => Number((s.accuracy * 100).toFixed(1)));
     const skillsBarColors = skillsSorted.map((s) => theme.palette[SKILL_COLOR[s.skill_level]].main);
-    const notAnswered = Math.max(0, studentsTotal - studentsAnswered);
     const dateLabel = ov.assessment.date ? new Date(`${ov.assessment.date}T00:00:00`).toLocaleDateString("pt-BR") : null;
 
     return (
@@ -627,7 +617,7 @@ export default function AssessmentOverview() {
             </Stack>
 
             <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 7 }}>
+                <Grid size={{ xs: 12, md: 12 }}>
                     <Card>
                         <CardContent>
                             <Typography variant="subtitle1" fontWeight={700} gutterBottom>
@@ -676,48 +666,6 @@ export default function AssessmentOverview() {
                                     </Stack>
                                 ))}
                             </Stack>
-                        </CardContent>
-                    </Card>
-                </Grid>
-
-                <Grid size={{ xs: 12, md: 5 }}>
-                    <Card>
-                        <CardContent>
-                            <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                                Participação
-                            </Typography>
-                            {studentsTotal === 0 ? (
-                                <Alert severity="info">Sem alunos cadastrados na turma.</Alert>
-                            ) : (
-                                <PieChart
-                                    height={220}
-                                    series={[
-                                        {
-                                            innerRadius: 50,
-                                            outerRadius: 90,
-                                            paddingAngle: 2,
-                                            cornerRadius: 4,
-                                            data: [
-                                                {
-                                                    id: "answered",
-                                                    value: studentsAnswered,
-                                                    label: "Responderam",
-                                                    color: theme.palette.success.main,
-                                                },
-                                                {
-                                                    id: "missing",
-                                                    value: notAnswered,
-                                                    label: "Sem resposta",
-                                                    color: theme.palette.grey[400],
-                                                },
-                                            ],
-                                        },
-                                    ]}
-                                />
-                            )}
-                            <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center", mt: 1 }}>
-                                {formatPercent(participation)} dos alunos responderam ao menos uma questão
-                            </Typography>
                         </CardContent>
                     </Card>
                 </Grid>
