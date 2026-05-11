@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { chunkChartRows, normalizeRatio, toStackedSegments } from "./pdfChartPrimitives";
+import { chunkChartRows, hasSpaceForChartRow, normalizeRatio, toStackedSegments } from "./pdfChartPrimitives";
 
 describe("pdf chart primitives", () => {
     it("normalizes ratios to the supported chart range", () => {
@@ -27,5 +27,10 @@ describe("pdf chart primitives", () => {
     it("chunks chart rows without dropping items", () => {
         expect(chunkChartRows([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
         expect(chunkChartRows([1, 2], 0)).toEqual([[1], [2]]);
+    });
+
+    it("checks row space with a bottom guard before drawing near the footer", () => {
+        expect(hasSpaceForChartRow({ y: 168.5, rowHeight: 17.5, contentBottom: 190, bottomGuard: 4 })).toBe(true);
+        expect(hasSpaceForChartRow({ y: 170, rowHeight: 17.5, contentBottom: 190, bottomGuard: 4 })).toBe(false);
     });
 });

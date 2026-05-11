@@ -32,6 +32,13 @@ interface StackedBarOptions<T extends CountedChartItem> {
     borderColor?: PdfColor;
 }
 
+interface ChartRowSpaceOptions {
+    y: number;
+    rowHeight: number;
+    contentBottom: number;
+    bottomGuard?: number;
+}
+
 const setFillColor = (doc: jsPDF, color: PdfColor): void => {
     doc.setFillColor(color[0], color[1], color[2]);
 };
@@ -77,6 +84,9 @@ export const chunkChartRows = <T>(items: readonly T[], maxRowsPerChunk: number):
 
     return chunks;
 };
+
+export const hasSpaceForChartRow = ({ y, rowHeight, contentBottom, bottomGuard = 0 }: ChartRowSpaceOptions): boolean =>
+    y + rowHeight <= contentBottom - bottomGuard;
 
 export const drawProgressBar = (doc: jsPDF, options: ProgressBarOptions): void => {
     const { x, y, width, height, ratio, fillColor, trackColor, borderColor } = options;

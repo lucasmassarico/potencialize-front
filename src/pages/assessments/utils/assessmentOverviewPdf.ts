@@ -11,9 +11,9 @@ import {
     type ReportRankingSection,
 } from "./assessmentOverviewReport";
 import {
-    chunkChartRows,
     drawProgressBar,
     drawStackedBar,
+    hasSpaceForChartRow,
     toStackedSegments,
     type PdfColor,
 } from "./pdfChartPrimitives";
@@ -30,7 +30,8 @@ const OPTION_COLORS: Record<ReportOptionLabel, PdfColor> = {
     Branco: COLORS.blank,
 };
 
-const QUESTION_DISTRIBUTION_ROWS_PER_PAGE = 10;
+const QUESTION_DISTRIBUTION_BOTTOM_GUARD = 4;
+const QUESTION_DISTRIBUTION_ROW_GAP = 1.5;
 
 const PAGE = {
     marginX: 12,
@@ -522,13 +523,28 @@ const drawQuestionDistributionRow = (doc: jsPDF, question: ReportQuestionRow, y:
     doc.setFontSize(6.2);
     doc.text(`${question.distributionTotal}`, x + width - 4, y + 8.9, { align: "right" });
 
-    return y + rowHeight + 1.5;
+    return y + rowHeight + QUESTION_DISTRIBUTION_ROW_GAP;
 };
 
-const drawQuestionDistributionCharts = (doc: jsPDF, report: AssessmentOverviewReport): void => {
-    const chunks = chunkChartRows(report.questions, QUESTION_DISTRIBUTION_ROWS_PER_PAGE);
+const drawQuestionDistributionPageHeader = (doc: jsPDF, isFirstQuestionPage: boolean): number => {
+    doc.addPage();
+    let currentY = sectionTitle(
+        doc,
+        "Desempenho por questão",
+        PAGE.contentTop,
+        isFirstQuestionPage
+            ? "Barras de acerto e distribuição por alternativa. A legenda indica as alternativas A-E e respostas em branco."
+            : undefined,
+    );
+    currentY = drawDistributionLegend(doc, currentY);
+    return drawQuestionDistributionHeader(doc, currentY + 2);
+};
 
-    if (chunks.length === 0) {
+const questionDistributionRowStep = (): number =>
+    PDF_REPORT_THEME.chart.questionRowHeight + QUESTION_DISTRIBUTION_ROW_GAP;
+
+const drawQuestionDistributionCharts = (doc: jsPDF, report: AssessmentOverviewReport): void => {
+    if (report.questions.length === 0) {
         doc.addPage();
         const y = sectionTitle(
             doc,
@@ -540,22 +556,25 @@ const drawQuestionDistributionCharts = (doc: jsPDF, report: AssessmentOverviewRe
         return;
     }
 
-    chunks.forEach((chunk, index) => {
-        doc.addPage();
-        let currentY = sectionTitle(
-            doc,
-            "Desempenho por questão",
-            PAGE.contentTop,
-            index === 0
-                ? "Barras de acerto e distribuição por alternativa. A legenda indica as alternativas A-E e respostas em branco."
-                : undefined,
-        );
-        currentY = drawDistributionLegend(doc, currentY);
-        currentY = drawQuestionDistributionHeader(doc, currentY + 2);
+    let currentY = drawQuestionDistributionPageHeader(doc, true);
+    let pageRowIndex = 0;
 
-        chunk.forEach((question, questionIndex) => {
-            currentY = drawQuestionDistributionRow(doc, question, currentY, questionIndex);
+    report.questions.forEach((question) => {
+        const rowStep = questionDistributionRowStep();
+        const hasSpace = hasSpaceForChartRow({
+            y: currentY,
+            rowHeight: rowStep,
+            contentBottom: PAGE.contentBottom,
+            bottomGuard: QUESTION_DISTRIBUTION_BOTTOM_GUARD,
         });
+
+        if (!hasSpace && pageRowIndex > 0) {
+            currentY = drawQuestionDistributionPageHeader(doc, false);
+            pageRowIndex = 0;
+        }
+
+        currentY = drawQuestionDistributionRow(doc, question, currentY, pageRowIndex);
+        pageRowIndex += 1;
     });
 };
 
