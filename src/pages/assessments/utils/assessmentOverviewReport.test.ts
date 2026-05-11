@@ -128,6 +128,20 @@ describe("assessment overview report mapper", () => {
         ]);
     });
 
+    it("adds class and teacher context to the printable report title when available", () => {
+        const report = buildAssessmentOverviewReport({
+            ...baseOverview,
+            assessment: {
+                ...baseOverview.assessment,
+                title: "Simulado de Matemática",
+                class_name: "3B",
+                teacher_name: "Rafa",
+            },
+        });
+
+        expect(report.title).toBe("Simulado de Matemática - 3B - Prof. Rafa");
+    });
+
     it("sorts skills and questions in pedagogical order", () => {
         const report = buildAssessmentOverviewReport(baseOverview);
 

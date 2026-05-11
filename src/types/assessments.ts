@@ -98,6 +98,10 @@ export interface AssessmentOverviewDTO {
     assessment: {
         id: number;
         class_id: number;
+        class_name?: string | null;
+        class_year?: number | null;
+        teacher_id?: number | null;
+        teacher_name?: string | null;
         title: string;
         date: string;
         subject_kind?: SubjectKind;

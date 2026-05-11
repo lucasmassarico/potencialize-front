@@ -179,6 +179,14 @@ export const formatDescriptorLabel = (code?: string | null, title?: string | nul
     return cleanCode || cleanTitle || "-";
 };
 
+export const formatAssessmentReportTitle = (assessment: AssessmentOverviewDTO["assessment"]): string => {
+    const title = assessment.title?.trim() || `Avaliação ${assessment.id}`;
+    const className = assessment.class_name?.trim();
+    const teacherName = assessment.teacher_name?.trim();
+
+    return [title, className, teacherName ? `Prof. ${teacherName}` : null].filter(Boolean).join(" - ");
+};
+
 const toDistributionValues = (question: OverviewByQuestion): ReportOptionDistribution[] => [
     ...OPTION_LETTERS.map((option) => ({
         option: option.toUpperCase() as ReportOptionLabel,
@@ -260,7 +268,7 @@ export const buildAssessmentOverviewReport = (
     const expectedAnswers = totalQuestions * totalStudents;
     const hardestTop = overview.hardest[0];
 
-    const title = overview.assessment.title?.trim() || `Avaliação ${overview.assessment.id}`;
+    const title = formatAssessmentReportTitle(overview.assessment);
     const coverage = expectedAnswers > 0 ? formatPercent(totalAnswers / expectedAnswers) : "-";
 
     return {
