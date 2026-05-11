@@ -139,6 +139,21 @@ describe("assessment overview report mapper", () => {
         expect(formatDistribution(baseOverview.by_question[0])).toBe("A: 1 | B: 2 | C*: 18 | D: 2 | E: 0 | Branco: 7");
     });
 
+    it("keeps distribution values structured for PDF charts", () => {
+        const report = buildAssessmentOverviewReport(baseOverview);
+
+        expect(report.questions[1].descriptorLabel).toBe("D10 - Grandezas e medidas");
+        expect(report.questions[1].distributionTotal).toBe(30);
+        expect(report.questions[1].distributionValues).toEqual([
+            { option: "A", count: 1, isCorrect: false },
+            { option: "B", count: 2, isCorrect: false },
+            { option: "C", count: 18, isCorrect: true },
+            { option: "D", count: 2, isCorrect: false },
+            { option: "E", count: 0, isCorrect: false },
+            { option: "Branco", count: 7, isCorrect: false },
+        ]);
+    });
+
     it("handles empty rankings without hiding questions", () => {
         const report = buildAssessmentOverviewReport({
             ...baseOverview,
@@ -174,6 +189,6 @@ describe("assessment overview report mapper", () => {
         });
 
         expect(fileName).toBe("prova-diagnostica-6-ano-overview.pdf");
-        expect(doc.getNumberOfPages()).toBeGreaterThan(1);
+        expect(doc.getNumberOfPages()).toBeGreaterThan(5);
     });
 });
