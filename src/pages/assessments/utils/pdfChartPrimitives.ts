@@ -27,7 +27,7 @@ interface StackedBarOptions<T extends CountedChartItem> {
     y: number;
     width: number;
     height: number;
-    segments: Array<StackedChartSegment<T> & { color: PdfColor }>;
+    segments: Array<StackedChartSegment<T> & { color: PdfColor; borderColor?: PdfColor }>;
     trackColor: PdfColor;
     borderColor?: PdfColor;
 }
@@ -110,6 +110,11 @@ export const drawStackedBar = <T extends CountedChartItem>(doc: jsPDF, options: 
 
         setFillColor(doc, segment.color);
         doc.rect(x + width * segment.startRatio, y, segmentWidth, height, "F");
+
+        if (segment.borderColor && segmentWidth >= 1.5) {
+            setDrawColor(doc, segment.borderColor);
+            doc.rect(x + width * segment.startRatio, y, segmentWidth, height, "S");
+        }
     });
 
     if (borderColor) {

@@ -142,6 +142,7 @@ describe("assessment overview report mapper", () => {
     it("keeps distribution values structured for PDF charts", () => {
         const report = buildAssessmentOverviewReport(baseOverview);
 
+        expect(report.questions[1].descriptorLabel).toBe("D10 - Grandezas e medidas");
         expect(report.questions[1].distributionTotal).toBe(30);
         expect(report.questions[1].distributionValues).toEqual([
             { option: "A", count: 1, isCorrect: false },

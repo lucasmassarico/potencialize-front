@@ -17,35 +17,20 @@ import {
     toStackedSegments,
     type PdfColor,
 } from "./pdfChartPrimitives";
+import { accuracyColor, PDF_REPORT_THEME, skillLevelColor } from "./pdfReportTheme";
 
-const COLORS = {
-    primary: [37, 99, 235] as PdfColor,
-    primaryDark: [30, 64, 175] as PdfColor,
-    success: [22, 163, 74] as PdfColor,
-    warning: [217, 119, 6] as PdfColor,
-    danger: [220, 38, 38] as PdfColor,
-    teal: [13, 148, 136] as PdfColor,
-    violet: [124, 58, 237] as PdfColor,
-    rose: [225, 29, 72] as PdfColor,
-    text: [31, 41, 55] as PdfColor,
-    muted: [107, 114, 128] as PdfColor,
-    border: [226, 232, 240] as PdfColor,
-    surface: [248, 250, 252] as PdfColor,
-    track: [241, 245, 249] as PdfColor,
-    blank: [148, 163, 184] as PdfColor,
-    white: [255, 255, 255] as PdfColor,
-};
+const COLORS = PDF_REPORT_THEME.colors;
 
 const OPTION_COLORS: Record<ReportOptionLabel, PdfColor> = {
-    A: COLORS.rose,
-    B: COLORS.warning,
-    C: COLORS.primary,
-    D: COLORS.teal,
-    E: COLORS.violet,
+    A: COLORS.optionA,
+    B: COLORS.optionB,
+    C: COLORS.optionC,
+    D: COLORS.optionD,
+    E: COLORS.optionE,
     Branco: COLORS.blank,
 };
 
-const QUESTION_DISTRIBUTION_ROWS_PER_PAGE = 9;
+const QUESTION_DISTRIBUTION_ROWS_PER_PAGE = 10;
 
 const PAGE = {
     marginX: 12,
@@ -67,12 +52,6 @@ const setDrawColor = (doc: jsPDF, color: PdfColor): void => {
     doc.setDrawColor(color[0], color[1], color[2]);
 };
 
-const accuracyColor = (value: number): PdfColor => {
-    if (value < 0.5) return COLORS.danger;
-    if (value < 0.7) return COLORS.warning;
-    return COLORS.success;
-};
-
 const compactQuestionNumber = (value: string): string => value.replace("Questão ", "Q");
 
 const pageWidth = (doc: jsPDF): number => doc.internal.pageSize.getWidth();
@@ -83,6 +62,27 @@ const ensureSpace = (doc: jsPDF, y: number, needed: number): number => {
     if (y + needed <= PAGE.contentBottom) return y;
     doc.addPage();
     return PAGE.contentTop;
+};
+
+const drawPercentGrid = (doc: jsPDF, x: number, y: number, width: number, height: number): void => {
+    doc.setLineWidth(0.1);
+    PDF_REPORT_THEME.chart.axisTicks.forEach((tick) => {
+        const tickX = x + width * tick;
+        setDrawColor(doc, COLORS.grid);
+        doc.line(tickX, y, tickX, y + height);
+
+        setTextColor(doc, COLORS.subtleText);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(6);
+        doc.text(`${Math.round(tick * 100)}%`, tickX, y + height + 4, { align: "center" });
+    });
+};
+
+const drawColumnHeader = (doc: jsPDF, text: string, x: number, y: number): void => {
+    setTextColor(doc, COLORS.muted);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.3);
+    doc.text(text.toUpperCase(), x, y);
 };
 
 const drawPageDecorations = (doc: jsPDF, report: AssessmentOverviewReport): void => {
@@ -211,8 +211,8 @@ const tableDefaults = (startY: number): UserOptions => ({
 });
 
 const drawSkillsChart = (doc: jsPDF, report: AssessmentOverviewReport, y: number): number => {
-    const rowHeight = 12;
-    const startY = ensureSpace(doc, y, 20 + report.skills.length * rowHeight);
+    const rowHeight = PDF_REPORT_THEME.chart.compactRowHeight;
+    const startY = ensureSpace(doc, y, 28 + report.skills.length * rowHeight);
     const currentY = sectionTitle(doc, "Acerto por nível", startY);
 
     if (report.skills.length === 0) {
@@ -221,41 +221,55 @@ const drawSkillsChart = (doc: jsPDF, report: AssessmentOverviewReport, y: number
 
     const x = PAGE.marginX;
     const width = contentWidth(doc);
-    const chartHeight = report.skills.length * rowHeight + 7;
+    const topPadding = 8;
+    const axisHeight = 8;
+    const chartHeight = topPadding + report.skills.length * rowHeight + axisHeight;
+    const labelWidth = 50;
+    const valueWidth = 24;
+    const metaWidth = 36;
+    const barX = x + labelWidth;
+    const barWidth = width - labelWidth - valueWidth - metaWidth - 8;
+    const gridY = currentY + 6;
+    const gridHeight = report.skills.length * rowHeight;
+
     setFillColor(doc, COLORS.surface);
     setDrawColor(doc, COLORS.border);
     doc.roundedRect(x, currentY, width, chartHeight, 2, 2, "FD");
+    drawPercentGrid(doc, barX, gridY, barWidth, gridHeight);
+
+    drawColumnHeader(doc, "Nível", x + 4, currentY + 5);
+    drawColumnHeader(doc, "Taxa de acerto", barX, currentY + 5);
+    drawColumnHeader(doc, "Respostas", barX + barWidth + valueWidth + 4, currentY + 5);
 
     report.skills.forEach((skill, index) => {
-        const rowY = currentY + 5 + index * rowHeight;
-        const barX = x + 58;
-        const barWidth = 118;
+        const rowY = currentY + topPadding + index * rowHeight;
 
         setTextColor(doc, COLORS.text);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
+        doc.setFontSize(7.2);
         doc.text(skill.level, x + 4, rowY + 5);
 
         drawProgressBar(doc, {
             x: barX,
-            y: rowY + 1,
+            y: rowY + 1.2,
             width: barWidth,
-            height: 5,
+            height: 5.5,
             ratio: skill.accuracyValue,
-            fillColor: accuracyColor(skill.accuracyValue),
+            fillColor: skillLevelColor(skill.skillLevel),
             trackColor: COLORS.track,
             borderColor: COLORS.border,
         });
 
         setTextColor(doc, COLORS.primaryDark);
         doc.setFont("helvetica", "bold");
-        doc.text(skill.accuracyLabel, barX + barWidth + 6, rowY + 5);
+        doc.setFontSize(7.2);
+        doc.text(skill.accuracyLabel, barX + barWidth + 5, rowY + 5.4);
 
         setTextColor(doc, COLORS.muted);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(7);
-        doc.text(`${skill.correct}/${skill.answers} corretas`, barX + barWidth + 29, rowY + 5);
-        doc.text(`${skill.questions} questões`, x + width - 4, rowY + 5, { align: "right" });
+        doc.setFontSize(6.6);
+        doc.text(`${skill.correct}/${skill.answers}`, barX + barWidth + valueWidth + 4, rowY + 5.4);
+        doc.text(`${skill.questions} questões`, x + width - 4, rowY + 5.4, { align: "right" });
     });
 
     return currentY + chartHeight + 10;
@@ -272,163 +286,243 @@ const emptySectionMessage = (doc: jsPDF, text: string, y: number): number => {
     return y + 18;
 };
 
-const drawRankingRow = (doc: jsPDF, item: ReportRankingRow, y: number): number => {
-    const rowHeight = 22;
-    const x = PAGE.marginX;
-    const width = contentWidth(doc);
-    const barX = x + 61;
-    const barWidth = 74;
-    const textX = x + 166;
+const drawRankingItem = (
+    doc: jsPDF,
+    item: ReportRankingRow,
+    x: number,
+    y: number,
+    width: number,
+    accentColor: PdfColor,
+): number => {
+    const rowHeight = 23;
+    const barX = x + width - 55;
+    const barWidth = 35;
 
-    setFillColor(doc, COLORS.surface);
+    setFillColor(doc, COLORS.white);
     setDrawColor(doc, COLORS.border);
-    doc.roundedRect(x, y, width, rowHeight, 2, 2, "FD");
+    doc.roundedRect(x, y, width, rowHeight, 1.6, 1.6, "FD");
+
+    setFillColor(doc, accentColor);
+    doc.rect(x, y, 1.6, rowHeight, "F");
 
     setTextColor(doc, COLORS.primaryDark);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text(compactQuestionNumber(item.number), x + 4, y + 7);
+    doc.setFontSize(8);
+    doc.text(compactQuestionNumber(item.number), x + 4, y + 6);
 
     setTextColor(doc, COLORS.muted);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.text(item.level, x + 4, y + 13);
-    doc.text(item.descriptor, x + 4, y + 18);
+    doc.setFontSize(6.2);
+    doc.text(`${item.descriptor} - ${item.level}`, x + 4, y + 11.5);
 
-    setTextColor(doc, COLORS.muted);
-    doc.setFont("helvetica", "bold");
-    doc.text("Acerto", barX, y + 7);
+    setTextColor(doc, COLORS.text);
+    doc.setFontSize(6.5);
+    const textLines = doc.splitTextToSize(item.text, barX - x - 8);
+    doc.text(textLines.slice(0, 2), x + 4, y + 16.5);
+
     drawProgressBar(doc, {
         x: barX,
-        y: y + 10,
+        y: y + 5.5,
         width: barWidth,
-        height: 5,
+        height: 4,
         ratio: item.accuracyValue,
-        fillColor: accuracyColor(item.accuracyValue),
+        fillColor: accentColor,
         trackColor: COLORS.track,
         borderColor: COLORS.border,
     });
 
     setTextColor(doc, COLORS.primaryDark);
     doc.setFont("helvetica", "bold");
-    doc.text(item.accuracyLabel, barX + barWidth + 6, y + 14);
+    doc.setFontSize(6.6);
+    doc.text(item.accuracyLabel, barX + barWidth + 3, y + 8.7);
 
     setTextColor(doc, COLORS.muted);
     doc.setFont("helvetica", "normal");
-    doc.text(`${item.answers} respostas`, barX + barWidth + 6, y + 19);
+    doc.setFontSize(6.2);
+    doc.text(`${item.answers} respostas`, barX, y + 17);
 
-    setTextColor(doc, COLORS.text);
-    doc.setFontSize(7);
-    const textLines = doc.splitTextToSize(item.text, x + width - textX - 4);
-    doc.text(textLines.slice(0, 3), textX, y + 7);
-
-    return y + rowHeight + 3;
+    return y + rowHeight + 2;
 };
 
-const drawRankingSection = (doc: jsPDF, section: ReportRankingSection, y: number): number => {
-    let currentY = ensureSpace(doc, y, 36);
-    currentY = sectionTitle(doc, section.title, currentY, section.criteria);
+const drawRankingColumn = (
+    doc: jsPDF,
+    section: ReportRankingSection,
+    x: number,
+    y: number,
+    width: number,
+    accentColor: PdfColor,
+): number => {
+    let currentY = y;
+
+    setFillColor(doc, COLORS.surfaceVariant);
+    setDrawColor(doc, COLORS.border);
+    doc.roundedRect(x, currentY, width, 15, 1.8, 1.8, "FD");
+
+    setTextColor(doc, COLORS.primaryDark);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.2);
+    doc.text(section.title, x + 4, currentY + 5.5);
+
+    setTextColor(doc, COLORS.muted);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6);
+    doc.text(doc.splitTextToSize(section.criteria, width - 8).slice(0, 1), x + 4, currentY + 10.8);
+
+    currentY += 18;
 
     if (section.items.length === 0) {
-        return emptySectionMessage(doc, "Sem questões ranqueadas com dados suficientes.", currentY);
+        setTextColor(doc, COLORS.muted);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.text("Sem questões ranqueadas com dados suficientes.", x + 4, currentY + 5);
+        return currentY + 12;
     }
 
     section.items.forEach((item) => {
-        currentY = ensureSpace(doc, currentY, 25);
-        currentY = drawRankingRow(doc, item, currentY);
+        currentY = drawRankingItem(doc, item, x, currentY, width, accentColor);
     });
 
-    return currentY + 4;
+    return currentY;
+};
+
+const drawRankingComparison = (doc: jsPDF, report: AssessmentOverviewReport, y: number): number => {
+    const maxRows = Math.max(report.hardest.items.length, report.easiest.items.length, 1);
+    const rowHeight = 25;
+    let currentY = ensureSpace(doc, y, 24 + maxRows * rowHeight);
+    currentY = sectionTitle(doc, "Questões ranqueadas", currentY);
+
+    const gap = 6;
+    const columnWidth = (contentWidth(doc) - gap) / 2;
+    const leftY = drawRankingColumn(doc, report.hardest, PAGE.marginX, currentY, columnWidth, COLORS.error);
+    const rightY = drawRankingColumn(
+        doc,
+        report.easiest,
+        PAGE.marginX + columnWidth + gap,
+        currentY,
+        columnWidth,
+        COLORS.success,
+    );
+
+    return Math.max(leftY, rightY) + 8;
 };
 
 const drawDistributionLegend = (doc: jsPDF, y: number): number => {
-    const items = Object.entries(OPTION_COLORS) as Array<[ReportOptionLabel, PdfColor]>;
+    const items: Array<[string, PdfColor]> = [
+        ["Gabarito", COLORS.success],
+        ...((Object.entries(OPTION_COLORS) as Array<[ReportOptionLabel, PdfColor]>).filter(([label]) => label !== "Branco")),
+        ["Branco", COLORS.blank],
+    ];
     let x = PAGE.marginX;
 
     setTextColor(doc, COLORS.muted);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
+    doc.setFontSize(6.5);
 
     items.forEach(([label, color]) => {
         setFillColor(doc, color);
         setDrawColor(doc, COLORS.border);
-        doc.rect(x, y - 3, 3, 3, "FD");
+        doc.roundedRect(x, y - 3, 3, 3, 0.5, 0.5, "FD");
         setTextColor(doc, COLORS.muted);
         doc.text(label, x + 4.5, y);
-        x += doc.getTextWidth(label) + 13;
+        x += doc.getTextWidth(label) + 12;
     });
 
-    return y + 6;
+    return y + 5;
 };
 
 const distributionSegmentsForQuestion = (question: ReportQuestionRow) =>
     toStackedSegments(question.distributionValues, question.distributionTotal).map((segment) => ({
         ...segment,
-        color: OPTION_COLORS[segment.option],
+        color: segment.isCorrect ? COLORS.success : OPTION_COLORS[segment.option],
+        borderColor: segment.isCorrect ? COLORS.primaryDark : undefined,
     }));
 
-const drawQuestionDistributionRow = (doc: jsPDF, question: ReportQuestionRow, y: number): number => {
-    const rowHeight = 15;
+const drawQuestionDistributionHeader = (doc: jsPDF, y: number): number => {
+    const x = PAGE.marginX;
+    drawColumnHeader(doc, "Questao", x + 4, y);
+    drawColumnHeader(doc, "Descritor", x + 24, y);
+    drawColumnHeader(doc, "Enunciado", x + 76, y);
+    drawColumnHeader(doc, "Acerto", x + 150, y);
+    drawColumnHeader(doc, "Distribuicao", x + 202, y);
+    drawColumnHeader(doc, "Alunos", x + contentWidth(doc) - 18, y);
+    return y + 3;
+};
+
+const drawQuestionDistributionRow = (doc: jsPDF, question: ReportQuestionRow, y: number, index: number): number => {
+    const rowHeight = PDF_REPORT_THEME.chart.questionRowHeight;
     const x = PAGE.marginX;
     const width = contentWidth(doc);
-    const textX = x + 30;
-    const accuracyX = x + 128;
-    const accuracyWidth = 42;
-    const distributionX = x + 187;
-    const distributionWidth = 70;
+    const descriptorX = x + 24;
+    const textX = x + 76;
+    const accuracyX = x + 150;
+    const accuracyWidth = 34;
+    const distributionX = x + 202;
+    const distributionWidth = 50;
+    const fillColor = index % 2 === 0 ? COLORS.white : COLORS.surfaceVariant;
 
-    setFillColor(doc, COLORS.white);
+    setFillColor(doc, fillColor);
     setDrawColor(doc, COLORS.border);
     doc.roundedRect(x, y, width, rowHeight, 1.5, 1.5, "FD");
+    setFillColor(doc, skillLevelColor(question.skillLevel));
+    doc.rect(x, y, 1.4, rowHeight, "F");
 
     setTextColor(doc, COLORS.primaryDark);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.text(compactQuestionNumber(question.number), x + 4, y + 6);
+    doc.setFontSize(7.4);
+    doc.text(compactQuestionNumber(question.number), x + 4, y + 5.5);
 
     setTextColor(doc, COLORS.muted);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
-    doc.text(`Gab. ${question.correctOption}`, x + 4, y + 11);
+    doc.setFontSize(6);
+    doc.text(`Gab. ${question.correctOption}`, x + 4, y + 11.3);
 
     setTextColor(doc, COLORS.text);
-    doc.setFontSize(6.7);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.4);
+    const descriptorLines = doc.splitTextToSize(question.descriptorLabel, textX - descriptorX - 4);
+    doc.text(descriptorLines.slice(0, 2), descriptorX, y + 5.2);
+
+    setTextColor(doc, COLORS.muted);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(5.7);
+    doc.text(question.level, descriptorX, y + 13.1);
+
+    setTextColor(doc, COLORS.text);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.3);
     const questionLines = doc.splitTextToSize(question.text, accuracyX - textX - 4);
-    doc.text(questionLines.slice(0, 2), textX, y + 5);
+    doc.text(questionLines.slice(0, 2), textX, y + 5.2);
 
     setTextColor(doc, COLORS.muted);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.5);
-    doc.text("Acerto", accuracyX, y + 5);
+    doc.setFontSize(6.2);
+    doc.text(question.accuracyLabel, accuracyX + accuracyWidth + 4, y + 8.9);
     drawProgressBar(doc, {
         x: accuracyX,
-        y: y + 7,
+        y: y + 5.5,
         width: accuracyWidth,
-        height: 4,
+        height: 4.2,
         ratio: question.accuracyValue,
         fillColor: accuracyColor(question.accuracyValue),
         trackColor: COLORS.track,
         borderColor: COLORS.border,
     });
-    setTextColor(doc, COLORS.primaryDark);
-    doc.text(question.accuracyLabel, accuracyX + accuracyWidth + 4, y + 10.5);
 
-    setTextColor(doc, COLORS.muted);
-    doc.text("Distribuição", distributionX, y + 5);
     drawStackedBar(doc, {
         x: distributionX,
-        y: y + 7,
+        y: y + 5.5,
         width: distributionWidth,
-        height: 4,
+        height: 4.2,
         segments: distributionSegmentsForQuestion(question),
         trackColor: COLORS.track,
         borderColor: COLORS.border,
     });
     setTextColor(doc, COLORS.muted);
     doc.setFont("helvetica", "normal");
-    doc.text(`${question.distributionTotal} alunos`, x + width - 4, y + 10.5, { align: "right" });
+    doc.setFontSize(6.2);
+    doc.text(`${question.distributionTotal}`, x + width - 4, y + 8.9, { align: "right" });
 
-    return y + rowHeight + 2;
+    return y + rowHeight + 1.5;
 };
 
 const drawQuestionDistributionCharts = (doc: jsPDF, report: AssessmentOverviewReport): void => {
@@ -457,9 +551,10 @@ const drawQuestionDistributionCharts = (doc: jsPDF, report: AssessmentOverviewRe
                 : undefined,
         );
         currentY = drawDistributionLegend(doc, currentY);
+        currentY = drawQuestionDistributionHeader(doc, currentY + 2);
 
-        chunk.forEach((question) => {
-            currentY = drawQuestionDistributionRow(doc, question, currentY);
+        chunk.forEach((question, questionIndex) => {
+            currentY = drawQuestionDistributionRow(doc, question, currentY, questionIndex);
         });
     });
 };
@@ -511,8 +606,7 @@ export const createAssessmentOverviewPdf = (overview: AssessmentOverviewDTO): Cr
     let y = drawTitlePage(doc, report);
     y = drawSummaryCards(doc, report, y);
     y = drawSkillsChart(doc, report, y);
-    y = drawRankingSection(doc, report.hardest, y);
-    drawRankingSection(doc, report.easiest, y);
+    drawRankingComparison(doc, report, y);
     drawQuestionDistributionCharts(doc, report);
     drawQuestionsTable(doc, report);
     drawPageDecorations(doc, report);

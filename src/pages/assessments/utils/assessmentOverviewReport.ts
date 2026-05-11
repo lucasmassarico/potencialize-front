@@ -44,6 +44,7 @@ export interface ReportSummaryItem {
 }
 
 export interface ReportSkillRow {
+    skillLevel: SkillLevel;
     level: string;
     questions: number;
     answers: number;
@@ -57,9 +58,11 @@ export interface ReportQuestionRow {
     id: number;
     number: string;
     text: string;
+    skillLevel: SkillLevel;
     level: string;
     descriptor: string;
     descriptorTitle: string;
+    descriptorLabel: string;
     weight: number;
     correctOption: string;
     answers: number;
@@ -168,6 +171,14 @@ export const formatDistribution = (question: OverviewByQuestion): string =>
         `Branco: ${safeNumber(question.option_distribution.blank)}`,
     ].join(" | ");
 
+export const formatDescriptorLabel = (code?: string | null, title?: string | null): string => {
+    const cleanCode = code?.trim();
+    const cleanTitle = title?.trim();
+
+    if (cleanCode && cleanTitle) return `${cleanCode} - ${cleanTitle}`;
+    return cleanCode || cleanTitle || "-";
+};
+
 const toDistributionValues = (question: OverviewByQuestion): ReportOptionDistribution[] => [
     ...OPTION_LETTERS.map((option) => ({
         option: option.toUpperCase() as ReportOptionLabel,
@@ -185,6 +196,7 @@ const toSkillRows = (overview: AssessmentOverviewDTO): ReportSkillRow[] =>
     [...overview.by_skill]
         .sort((a, b) => SKILL_ORDER[a.skill_level] - SKILL_ORDER[b.skill_level])
         .map((skill) => ({
+            skillLevel: skill.skill_level,
             level: SKILL_LABELS[skill.skill_level],
             questions: safeNumber(skill.questions),
             answers: safeNumber(skill.answers),
@@ -205,9 +217,11 @@ const toQuestionRows = (overview: AssessmentOverviewDTO): ReportQuestionRow[] =>
                 id: question.question_id,
                 number: questionNumberLabel(question),
                 text: question.text_short?.trim() || "(sem enunciado)",
+                skillLevel: question.skill_level,
                 level: SKILL_LABELS[question.skill_level],
                 descriptor: question.descriptor_code?.trim() || "-",
                 descriptorTitle: question.descriptor_title?.trim() || "",
+                descriptorLabel: formatDescriptorLabel(question.descriptor_code, question.descriptor_title),
                 weight: safeNumber(question.weight),
                 correctOption: question.correct_option.toUpperCase(),
                 answers: safeNumber(question.answers),
