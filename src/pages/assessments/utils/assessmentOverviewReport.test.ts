@@ -123,7 +123,7 @@ describe("assessment overview report mapper", () => {
         expect(report.summary).toEqual([
             { label: "Taxa de acerto", value: "62.5%", detail: "30 de 48 respostas" },
             { label: "Participação", value: "80.0%", detail: "24 de 30 alunos responderam" },
-            { label: "Questões", value: "48/60", detail: "80.0% de cobertura" },
+            { label: "Questões", value: "2", detail: "Total de questões da prova" },
             { label: "Questão crítica", value: "Questão 1", detail: "50.0% de acerto - 24 respostas" },
         ]);
     });

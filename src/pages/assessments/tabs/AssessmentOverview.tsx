@@ -399,8 +399,6 @@ export default function AssessmentOverview() {
     const hardestTop = ov.hardest[0];
     const subject = subjectLabel(ov.assessment.subject_kind, ov.assessment.subject_other ?? null);
     const filenameBase = `${slugify(ov.assessment.title || `avaliacao-${ov.assessment.id}`)}-overview`;
-    const expectedAnswers = totalQuestions * studentsTotal;
-    const coverageLabel = expectedAnswers > 0 ? `${formatPercent(totalAnswers / expectedAnswers)} de cobertura` : "—";
 
     const handleSort = (key: SortKey) => {
         if (sortKey === key) {
@@ -548,8 +546,8 @@ export default function AssessmentOverview() {
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <KPICard
                         title="Questões"
-                        value={`${totalAnswers}/${expectedAnswers || totalQuestions}`}
-                        subtitle={coverageLabel}
+                        value={String(totalQuestions)}
+                        subtitle="Total de questões da prova"
                     />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>

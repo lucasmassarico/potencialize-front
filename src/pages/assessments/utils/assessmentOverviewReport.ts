@@ -265,11 +265,9 @@ export const buildAssessmentOverviewReport = (
     const totalStudents = safeNumber(overview.population.students_in_class);
     const studentsAnswered = safeNumber(overview.population.students_answered_any);
     const correct = safeNumber(overview.overall.correct);
-    const expectedAnswers = totalQuestions * totalStudents;
     const hardestTop = overview.hardest[0];
 
     const title = formatAssessmentReportTitle(overview.assessment);
-    const coverage = expectedAnswers > 0 ? formatPercent(totalAnswers / expectedAnswers) : "-";
 
     return {
         title,
@@ -290,8 +288,8 @@ export const buildAssessmentOverviewReport = (
             },
             {
                 label: "Questões",
-                value: `${totalAnswers}/${expectedAnswers || totalQuestions}`,
-                detail: `${coverage} de cobertura`,
+                value: String(totalQuestions),
+                detail: "Total de questões da prova",
             },
             {
                 label: "Questão crítica",
