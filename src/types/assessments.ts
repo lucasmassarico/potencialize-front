@@ -144,10 +144,54 @@ export interface MatrixStudent {
 }
 
 export interface MatrixCell {
+    answer_id: number;
     student_id: number;
     question_id: number;
-    marked_option?: Option;
+    marked_option: Option;
     is_correct: boolean;
+}
+
+export interface MatrixStudentSummary {
+    answered: number;
+    correct: number;
+    accuracy: number;
+}
+
+export interface MatrixStudentScoreTotals {
+    questions: number;
+    answered: number;
+    correct: number;
+    points_total: number;
+    points_correct: number;
+}
+
+export interface MatrixStudentScore {
+    basis: GradingBasis;
+    percent: number;
+    totals: MatrixStudentScoreTotals;
+}
+
+export type MatrixStudentPredictedLevelKey = "ABAIXO_BASICO" | "BASICO" | "ADEQUADO" | "AVANCADO";
+
+export interface MatrixStudentPredictedLevel {
+    key: MatrixStudentPredictedLevelKey;
+    label: string;
+    color: string;
+}
+
+export interface MatrixStudentResultSummary {
+    student_id: number;
+    summary: MatrixStudentSummary;
+    score: MatrixStudentScore;
+    predicted_level: MatrixStudentPredictedLevel;
+}
+
+export interface MatrixPolicyEcho {
+    basis: GradingBasis;
+    count_blank_as_wrong: boolean;
+    advanced_min: number;
+    adequate_min: number;
+    basic_min: number;
 }
 
 export interface MatrixPagination {
@@ -162,6 +206,8 @@ export interface AssessmentMatrixDTO {
     questions: MatrixQuestion[];
     students: MatrixStudent[];
     cells: MatrixCell[];
+    student_summaries: MatrixStudentResultSummary[];
+    policy: MatrixPolicyEcho;
     pagination: MatrixPagination;
 }
 
