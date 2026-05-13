@@ -41,13 +41,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 
 import { getAssessmentOverview } from "../../../api/assessments";
-import type {
-    AssessmentOverviewDTO,
-    OverviewByQuestion,
-    OverviewRankCriteria,
-    OverviewRankedItem,
-    SkillLevel,
-} from "../../../types/assessments";
+import type { AssessmentOverviewDTO, OverviewByQuestion, OverviewRankCriteria, OverviewRankedItem, SkillLevel } from "../../../types/assessments";
 
 const SKILL_LABELS: Record<SkillLevel, string> = {
     abaixo: "Abaixo do Básico",
@@ -98,8 +92,7 @@ const formatPercent = (v: number | null | undefined, digits = 1): string => {
 
 const safeNumber = (v: number | undefined | null): number => (Number.isFinite(v as number) ? (v as number) : 0);
 
-const questionNumberLabel = (q: { display_order?: number; question_id: number }): string =>
-    `Questão ${q.display_order ?? q.question_id}`;
+const questionNumberLabel = (q: { display_order?: number; question_id: number }): string => `Questão ${q.display_order ?? q.question_id}`;
 
 const subjectLabel = (kind?: string, other?: string | null): string | null => {
     if (!kind) return null;
@@ -189,13 +182,7 @@ function AccuracyBar({ value, color = "primary" }: { value: number; color?: "pri
     const pct = Math.max(0, Math.min(1, value)) * 100;
     return (
         <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 140 }}>
-            <LinearProgress
-                variant="determinate"
-                value={pct}
-                color={color}
-                sx={{ flex: 1, height: 8, borderRadius: 999 }}
-                aria-label="Taxa de acerto"
-            />
+            <LinearProgress variant="determinate" value={pct} color={color} sx={{ flex: 1, height: 8, borderRadius: 999 }} aria-label="Taxa de acerto" />
             <Typography variant="caption" fontWeight={600} sx={{ minWidth: 44, textAlign: "right" }}>
                 {formatPercent(value)}
             </Typography>
@@ -230,18 +217,10 @@ function OptionDistributionBar({ dist, correct }: OptionDistributionBarProps) {
                 const pct = (seg.count / total) * 100;
                 const isCorrect = seg.key === correct;
                 const isBlank = seg.key === "blank";
-                const bg = isCorrect
-                    ? theme.palette.success.main
-                    : isBlank
-                      ? theme.palette.grey[400]
-                      : theme.palette.grey[500];
+                const bg = isCorrect ? theme.palette.success.main : isBlank ? theme.palette.grey[400] : theme.palette.grey[500];
                 if (pct === 0) return null;
                 return (
-                    <Tooltip
-                        key={seg.key}
-                        title={`${seg.label}${isCorrect ? " (gabarito)" : ""}: ${seg.count} (${pct.toFixed(0)}%)`}
-                        arrow
-                    >
+                    <Tooltip key={seg.key} title={`${seg.label}${isCorrect ? " (gabarito)" : ""}: ${seg.count} (${pct.toFixed(0)}%)`} arrow>
                         <Box
                             sx={{
                                 flex: pct,
@@ -373,7 +352,8 @@ export default function AssessmentOverview() {
             if (skillFilter !== "all" && q.skill_level !== skillFilter) return false;
             if (descriptorFilter !== "all" && String(q.descriptor_id ?? "") !== descriptorFilter) return false;
             if (term) {
-                const haystack = `${q.display_order} ${q.display_label ?? ""} ${q.question_id} ${q.text_short ?? ""} ${q.descriptor_code ?? ""} ${q.descriptor_title ?? ""}`.toLowerCase();
+                const haystack =
+                    `${q.display_order} ${q.display_label ?? ""} ${q.question_id} ${q.text_short ?? ""} ${q.descriptor_code ?? ""} ${q.descriptor_title ?? ""}`.toLowerCase();
                 if (!haystack.includes(term)) return false;
             }
             return true;
@@ -456,19 +436,29 @@ export default function AssessmentOverview() {
 
         const skillSheet = [
             ["Nível", "Questões", "Respondidas", "Corretas", "Acerto (%)", "Alunos que responderam"],
-            ...skillsSorted.map((s) => [
-                SKILL_LABELS[s.skill_level],
-                s.questions,
-                s.answers,
-                s.correct,
-                (s.accuracy * 100).toFixed(1),
-                s.students_answered,
-            ]),
+            ...skillsSorted.map((s) => [SKILL_LABELS[s.skill_level], s.questions, s.answers, s.correct, (s.accuracy * 100).toFixed(1), s.students_answered]),
         ];
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(skillSheet), "Por nível");
 
         const questionsSheet = [
-            ["#", "Enunciado", "Nível", "Descritor", "Título do descritor", "Peso", "Gabarito", "Respondidas", "Corretas", "Acerto (%)", "A", "B", "C", "D", "E", "Branco"],
+            [
+                "#",
+                "Enunciado",
+                "Nível",
+                "Descritor",
+                "Título do descritor",
+                "Peso",
+                "Gabarito",
+                "Respondidas",
+                "Corretas",
+                "Acerto (%)",
+                "A",
+                "B",
+                "C",
+                "D",
+                "E",
+                "Branco",
+            ],
             ...ov.by_question.map((q) => [
                 q.display_order ?? q.question_id,
                 q.text_short ?? "",
@@ -544,11 +534,7 @@ export default function AssessmentOverview() {
                     />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <KPICard
-                        title="Questões"
-                        value={String(totalQuestions)}
-                        subtitle="Total de questões da prova"
-                    />
+                    <KPICard title="Questões" value={String(totalQuestions)} subtitle="Total de questões da prova" />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <KPICard
@@ -560,13 +546,7 @@ export default function AssessmentOverview() {
                 </Grid>
             </Grid>
 
-            <Stack
-                className="no-print"
-                direction={{ xs: "column", md: "row" }}
-                spacing={1.5}
-                alignItems={{ md: "center" }}
-                justifyContent="space-between"
-            >
+            <Stack className="no-print" direction={{ xs: "column", md: "row" }} spacing={1.5} alignItems={{ md: "center" }} justifyContent="space-between">
                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
                     {subject && <Chip size="small" variant="outlined" label={subject} />}
                     {dateLabel && <Chip size="small" variant="outlined" label={dateLabel} />}
@@ -583,11 +563,7 @@ export default function AssessmentOverview() {
                     >
                         {isPdfExporting ? "Gerando..." : "Exportar"}
                     </Button>
-                    <Menu
-                        anchorEl={exportAnchor}
-                        open={Boolean(exportAnchor)}
-                        onClose={() => setExportAnchor(null)}
-                    >
+                    <Menu anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}>
                         <MenuItem onClick={handleExportPDF} disabled={isPdfExporting}>
                             <ListItemIcon>
                                 <PictureAsPdfOutlinedIcon fontSize="small" />
@@ -621,13 +597,14 @@ export default function AssessmentOverview() {
                     <Card>
                         <CardContent>
                             <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                                Acerto por nível
+                                Taxa de acerto por nível
                             </Typography>
                             {skillsSorted.length === 0 ? (
                                 <Alert severity="info">Sem dados por nível.</Alert>
                             ) : (
                                 <BarChart
                                     height={260}
+                                    hideLegend
                                     layout="horizontal"
                                     yAxis={[
                                         {
@@ -648,13 +625,13 @@ export default function AssessmentOverview() {
                                             valueFormatter: (v: number | null) => (v == null ? "—" : `${v.toFixed(1)}%`),
                                         },
                                     ]}
-                                    margin={{ left: 24, right: 12, top: 12, bottom: 24 }}
+                                    margin={{ left: 24, right: 20, top: 8, bottom: 24 }}
                                 />
                             )}
                             <Stack spacing={1} sx={{ mt: 1.5 }}>
                                 {skillsSorted.map((s) => (
                                     <Stack key={s.skill_level} direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
-                                        <Box sx={{ minWidth: 150 }}>
+                                        <Box sx={{ minWidth: 50 }}>
                                             <SkillChip level={s.skill_level} />
                                         </Box>
                                         <Typography variant="caption" sx={{ color: "text.secondary", minWidth: 140 }}>
@@ -782,9 +759,7 @@ export default function AssessmentOverview() {
 
                     {filteredQuestions.length === 0 ? (
                         <Alert severity="info">
-                            {ov.by_question.length === 0
-                                ? "Sem respostas nas questões desta avaliação."
-                                : "Nenhuma questão corresponde aos filtros aplicados."}
+                            {ov.by_question.length === 0 ? "Sem respostas nas questões desta avaliação." : "Nenhuma questão corresponde aos filtros aplicados."}
                         </Alert>
                     ) : (
                         <TableContainer sx={{ maxHeight: 560 }}>
@@ -867,16 +842,10 @@ export default function AssessmentOverview() {
                                                 <Chip size="small" color="success" variant="outlined" label={q.correct_option.toUpperCase()} />
                                             </TableCell>
                                             <TableCell sx={{ minWidth: 160 }}>
-                                                <AccuracyBar
-                                                    value={safeNumber(q.accuracy)}
-                                                    color={SKILL_COLOR[q.skill_level]}
-                                                />
+                                                <AccuracyBar value={safeNumber(q.accuracy)} color={SKILL_COLOR[q.skill_level]} />
                                             </TableCell>
                                             <TableCell>
-                                                <OptionDistributionBar
-                                                    dist={q.option_distribution}
-                                                    correct={q.correct_option as OptionLetter}
-                                                />
+                                                <OptionDistributionBar dist={q.option_distribution} correct={q.correct_option as OptionLetter} />
                                             </TableCell>
                                         </TableRow>
                                     ))}
