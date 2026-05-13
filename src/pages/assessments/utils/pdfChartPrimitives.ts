@@ -88,22 +88,42 @@ export const chunkChartRows = <T>(items: readonly T[], maxRowsPerChunk: number):
 export const hasSpaceForChartRow = ({ y, rowHeight, contentBottom, bottomGuard = 0 }: ChartRowSpaceOptions): boolean =>
     y + rowHeight <= contentBottom - bottomGuard;
 
+const BAR_CORNER_RADIUS = 1.2;
+
+const withRoundedClip = (
+    doc: jsPDF,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    radius: number,
+    draw: () => void,
+): void => {
+    doc.saveGraphicsState();
+    doc.roundedRect(x, y, width, height, radius, radius);
+    doc.clip();
+    doc.discardPath();
+    draw();
+    doc.restoreGraphicsState();
+};
+
 export const drawProgressBar = (doc: jsPDF, options: ProgressBarOptions): void => {
     const { x, y, width, height, ratio, fillColor, trackColor, borderColor } = options;
     const fillWidth = width * normalizeRatio(ratio);
 
     setFillColor(doc, trackColor);
-    if (borderColor) setDrawColor(doc, borderColor);
-    doc.roundedRect(x, y, width, height, 1.2, 1.2, borderColor ? "FD" : "F");
+    doc.roundedRect(x, y, width, height, BAR_CORNER_RADIUS, BAR_CORNER_RADIUS, "F");
 
     if (fillWidth > 0) {
-        setFillColor(doc, fillColor);
-        doc.rect(x, y, fillWidth, height, "F");
+        withRoundedClip(doc, x, y, width, height, BAR_CORNER_RADIUS, () => {
+            setFillColor(doc, fillColor);
+            doc.rect(x, y, fillWidth, height, "F");
+        });
     }
 
     if (borderColor) {
         setDrawColor(doc, borderColor);
-        doc.roundedRect(x, y, width, height, 1.2, 1.2, "S");
+        doc.roundedRect(x, y, width, height, BAR_CORNER_RADIUS, BAR_CORNER_RADIUS, "S");
     }
 };
 
@@ -111,24 +131,25 @@ export const drawStackedBar = <T extends CountedChartItem>(doc: jsPDF, options: 
     const { x, y, width, height, segments, trackColor, borderColor } = options;
 
     setFillColor(doc, trackColor);
-    if (borderColor) setDrawColor(doc, borderColor);
-    doc.roundedRect(x, y, width, height, 1.2, 1.2, borderColor ? "FD" : "F");
+    doc.roundedRect(x, y, width, height, BAR_CORNER_RADIUS, BAR_CORNER_RADIUS, "F");
 
-    segments.forEach((segment) => {
-        const segmentWidth = width * segment.widthRatio;
-        if (segmentWidth <= 0) return;
+    withRoundedClip(doc, x, y, width, height, BAR_CORNER_RADIUS, () => {
+        segments.forEach((segment) => {
+            const segmentWidth = width * segment.widthRatio;
+            if (segmentWidth <= 0) return;
 
-        setFillColor(doc, segment.color);
-        doc.rect(x + width * segment.startRatio, y, segmentWidth, height, "F");
+            setFillColor(doc, segment.color);
+            doc.rect(x + width * segment.startRatio, y, segmentWidth, height, "F");
 
-        if (segment.borderColor && segmentWidth >= 1.5) {
-            setDrawColor(doc, segment.borderColor);
-            doc.rect(x + width * segment.startRatio, y, segmentWidth, height, "S");
-        }
+            if (segment.borderColor && segmentWidth >= 1.5) {
+                setDrawColor(doc, segment.borderColor);
+                doc.rect(x + width * segment.startRatio, y, segmentWidth, height, "S");
+            }
+        });
     });
 
     if (borderColor) {
         setDrawColor(doc, borderColor);
-        doc.roundedRect(x, y, width, height, 1.2, 1.2, "S");
+        doc.roundedRect(x, y, width, height, BAR_CORNER_RADIUS, BAR_CORNER_RADIUS, "S");
     }
 };
