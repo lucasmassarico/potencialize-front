@@ -22,9 +22,10 @@ const createDocSpy = () => {
         restoreGraphicsState: vi.fn(() => calls.operations.push("restore")),
         clip: vi.fn(() => calls.operations.push("clip")),
         discardPath: vi.fn(() => calls.operations.push("discardPath")),
-        roundedRect: vi.fn((_x, _y, _w, _h, _rx, _ry, style?: string) =>
-            calls.operations.push(`roundedRect:${style ?? "path"}`),
-        ),
+        roundedRect: vi.fn((_x, _y, _w, _h, _rx, _ry, style?: string | null) => {
+            const styleTag = style === null ? "null" : style === undefined ? "default" : style;
+            calls.operations.push(`roundedRect:${styleTag}`);
+        }),
         rect: vi.fn((_x, _y, _w, _h, style: string) => calls.operations.push(`rect:${style}`)),
         setFillColor: vi.fn(() => {}),
         setDrawColor: vi.fn(() => {}),
@@ -85,7 +86,7 @@ describe("pdf chart primitives", () => {
 
         const trackIndex = calls.operations.indexOf("roundedRect:F");
         const saveIndex = calls.operations.indexOf("save");
-        const clipPathIndex = calls.operations.indexOf("roundedRect:path");
+        const clipPathIndex = calls.operations.indexOf("roundedRect:null");
         const clipIndex = calls.operations.indexOf("clip");
         const discardIndex = calls.operations.indexOf("discardPath");
         const fillIndex = calls.operations.indexOf("rect:F");
@@ -100,6 +101,7 @@ describe("pdf chart primitives", () => {
         expect(fillIndex).toBeGreaterThan(discardIndex);
         expect(restoreIndex).toBeGreaterThan(fillIndex);
         expect(strokeIndex).toBeGreaterThan(restoreIndex);
+        expect(calls.operations).not.toContain("roundedRect:default");
     });
 
     it("skips the clipped fill draw when the progress ratio is zero", () => {
@@ -138,15 +140,18 @@ describe("pdf chart primitives", () => {
         });
 
         const saveIndex = calls.operations.indexOf("save");
+        const clipPathIndex = calls.operations.indexOf("roundedRect:null");
         const clipIndex = calls.operations.indexOf("clip");
         const discardIndex = calls.operations.indexOf("discardPath");
         const firstSegmentIndex = calls.operations.indexOf("rect:F");
         const restoreIndex = calls.operations.indexOf("restore");
 
         expect(saveIndex).toBeGreaterThanOrEqual(0);
-        expect(clipIndex).toBeGreaterThan(saveIndex);
+        expect(clipPathIndex).toBeGreaterThan(saveIndex);
+        expect(clipIndex).toBeGreaterThan(clipPathIndex);
         expect(discardIndex).toBeGreaterThan(clipIndex);
         expect(firstSegmentIndex).toBeGreaterThan(discardIndex);
         expect(restoreIndex).toBeGreaterThan(firstSegmentIndex);
+        expect(calls.operations).not.toContain("roundedRect:default");
     });
 });

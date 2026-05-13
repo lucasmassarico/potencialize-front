@@ -100,7 +100,10 @@ const withRoundedClip = (
     draw: () => void,
 ): void => {
     doc.saveGraphicsState();
-    doc.roundedRect(x, y, width, height, radius, radius);
+    // style=null defines the path without emitting a paint operator (S/f).
+    // Without this, jsPDF defaults to "S" (stroke) and traces the clip path
+    // with the current draw color, leaving dirty corners under the fill.
+    doc.roundedRect(x, y, width, height, radius, radius, null);
     doc.clip();
     doc.discardPath();
     draw();
