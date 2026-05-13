@@ -1,14 +1,16 @@
 import { jsPDF } from "jspdf";
-import { autoTable, type UserOptions } from "jspdf-autotable";
 
 import type { AssessmentOverviewDTO } from "../../../types/assessments";
 import {
     buildAssessmentOverviewReport,
+    type AssessmentOverviewStudentPerformanceInput,
     type AssessmentOverviewReport,
     type ReportOptionLabel,
     type ReportQuestionRow,
     type ReportRankingRow,
     type ReportRankingSection,
+    type ReportStudentClassificationKey,
+    type ReportStudentRow,
 } from "./assessmentOverviewReport";
 import {
     drawProgressBar,
@@ -32,6 +34,9 @@ const OPTION_COLORS: Record<ReportOptionLabel, PdfColor> = {
 
 const QUESTION_DISTRIBUTION_BOTTOM_GUARD = 4;
 const QUESTION_DISTRIBUTION_ROW_GAP = 1.5;
+const STUDENT_PERFORMANCE_BOTTOM_GUARD = 4;
+const STUDENT_PERFORMANCE_ROW_GAP = 1.2;
+const STUDENT_PERFORMANCE_ROW_HEIGHT = 14;
 
 const PAGE = {
     marginX: 12,
@@ -183,33 +188,6 @@ const sectionTitle = (doc: jsPDF, title: string, y: number, subtitle?: string): 
 
     return y + 5;
 };
-
-const tableDefaults = (startY: number): UserOptions => ({
-    startY,
-    margin: { top: PAGE.contentTop, right: PAGE.marginX, bottom: 18, left: PAGE.marginX },
-    theme: "grid",
-    rowPageBreak: "avoid",
-    showHead: "everyPage",
-    styles: {
-        font: "helvetica",
-        fontSize: 7,
-        cellPadding: 1.5,
-        overflow: "linebreak",
-        valign: "top",
-        textColor: COLORS.text,
-        lineColor: COLORS.border,
-        lineWidth: 0.1,
-    },
-    headStyles: {
-        fillColor: COLORS.primaryDark,
-        textColor: COLORS.white,
-        fontStyle: "bold",
-        halign: "left",
-    },
-    alternateRowStyles: {
-        fillColor: COLORS.surface,
-    },
-});
 
 const drawSkillsChart = (doc: jsPDF, report: AssessmentOverviewReport, y: number): number => {
     const rowHeight = PDF_REPORT_THEME.chart.compactRowHeight;
@@ -578,38 +556,147 @@ const drawQuestionDistributionCharts = (doc: jsPDF, report: AssessmentOverviewRe
     });
 };
 
-const drawQuestionsTable = (doc: jsPDF, report: AssessmentOverviewReport): void => {
-    doc.addPage();
-    const tableY = sectionTitle(
-        doc,
-        "Lista completa das questões",
-        PAGE.contentTop,
-        "Tabela completa com gabarito, acerto e distribuição por alternativa.",
-    );
+const studentClassificationColor = (key: ReportStudentClassificationKey): PdfColor => {
+    const map: Record<ReportStudentClassificationKey, PdfColor> = {
+        ABAIXO_BASICO: COLORS.error,
+        BASICO: COLORS.warning,
+        ADEQUADO: COLORS.info,
+        AVANCADO: COLORS.success,
+        SEM_RESPOSTA: COLORS.blank,
+    };
 
-    autoTable(doc, {
-        ...tableDefaults(tableY),
-        body: report.questions.map((question) => [
-            question.number.replace("Questão ", ""),
-            question.level,
-            question.descriptor,
-            question.correctOption,
-            `${question.correct}/${question.answers}`,
-            question.accuracyLabel,
-            question.distribution,
-            question.text,
-        ]),
-        head: [["#", "Nível", "Descritor", "Gab.", "Resp.", "Acerto", "Distribuição", "Enunciado"]],
-        columnStyles: {
-            0: { cellWidth: 14, halign: "center" },
-            1: { cellWidth: 28 },
-            2: { cellWidth: 22 },
-            3: { cellWidth: 12, halign: "center" },
-            4: { cellWidth: 18, halign: "right" },
-            5: { cellWidth: 18, halign: "right" },
-            6: { cellWidth: 74 },
-            7: { cellWidth: 87 },
-        },
+    return map[key] ?? COLORS.blank;
+};
+
+const studentClassificationTextColor = (key: ReportStudentClassificationKey): PdfColor =>
+    key === "BASICO" ? COLORS.primaryDark : COLORS.white;
+
+const drawStudentClassificationPill = (doc: jsPDF, student: ReportStudentRow, x: number, y: number, width: number): void => {
+    const color = studentClassificationColor(student.classificationKey);
+    setFillColor(doc, color);
+    setDrawColor(doc, COLORS.border);
+    doc.roundedRect(x, y, width, 6.2, 1.4, 1.4, "FD");
+
+    setTextColor(doc, studentClassificationTextColor(student.classificationKey));
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.3);
+    const label = doc.splitTextToSize(student.classificationLabel, width - 4)[0] ?? student.classificationLabel;
+    doc.text(label, x + width / 2, y + 4.2, { align: "center" });
+};
+
+const drawStudentPerformanceTableHeader = (doc: jsPDF, y: number): number => {
+    const x = PAGE.marginX;
+    const width = contentWidth(doc);
+
+    drawColumnHeader(doc, "#", x + 4, y);
+    drawColumnHeader(doc, "Aluno", x + 16, y);
+    drawColumnHeader(doc, "Classificação", x + 104, y);
+    drawColumnHeader(doc, "Desempenho", x + 154, y);
+    drawColumnHeader(doc, "Corretas", x + width - 32, y);
+
+    return y + 3;
+};
+
+const drawStudentPerformancePageHeader = (doc: jsPDF, isFirstStudentPage: boolean): number => {
+    doc.addPage();
+    const currentY = sectionTitle(
+        doc,
+        "Desempenho por aluno",
+        PAGE.contentTop,
+        isFirstStudentPage
+            ? "Lista ordenada por desempenho, com classificação individual e quantidade de questões corretas."
+            : undefined,
+    );
+    return drawStudentPerformanceTableHeader(doc, currentY + 2);
+};
+
+const drawStudentPerformanceRow = (doc: jsPDF, student: ReportStudentRow, y: number, pageRowIndex: number, rank: number): number => {
+    const x = PAGE.marginX;
+    const width = contentWidth(doc);
+    const rowHeight = STUDENT_PERFORMANCE_ROW_HEIGHT;
+    const fillColor = pageRowIndex % 2 === 0 ? COLORS.white : COLORS.surfaceVariant;
+    const accentColor = studentClassificationColor(student.classificationKey);
+    const nameX = x + 16;
+    const classificationX = x + 104;
+    const classificationWidth = 42;
+    const barX = x + 154;
+    const barWidth = 48;
+    const percentX = barX + barWidth + 5;
+    const correctX = x + width - 4;
+
+    setFillColor(doc, fillColor);
+    setDrawColor(doc, COLORS.border);
+    doc.roundedRect(x, y, width, rowHeight, 1.4, 1.4, "FD");
+    setFillColor(doc, accentColor);
+    doc.rect(x, y, 1.5, rowHeight, "F");
+
+    setTextColor(doc, COLORS.muted);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.8);
+    doc.text(String(rank), x + 4, y + 8.1);
+
+    setTextColor(doc, COLORS.primaryDark);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.2);
+    const name = doc.splitTextToSize(student.name, classificationX - nameX - 7)[0] ?? student.name;
+    doc.text(name, nameX, y + 5.8);
+
+    setTextColor(doc, COLORS.muted);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.1);
+    doc.text(`${student.answered} respondidas`, nameX, y + 11.1);
+
+    drawStudentClassificationPill(doc, student, classificationX, y + 3.8, classificationWidth);
+
+    drawProgressBar(doc, {
+        x: barX,
+        y: y + 4.9,
+        width: barWidth,
+        height: 4.4,
+        ratio: student.percentValue,
+        fillColor: accentColor,
+        trackColor: COLORS.track,
+        borderColor: COLORS.border,
+    });
+
+    setTextColor(doc, COLORS.primaryDark);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.8);
+    doc.text(student.percentLabel, percentX, y + 8.2);
+
+    setTextColor(doc, COLORS.text);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.text(`${student.correctLabel} corretas`, correctX, y + 8.2, { align: "right" });
+
+    return y + rowHeight + STUDENT_PERFORMANCE_ROW_GAP;
+};
+
+const drawStudentPerformanceSection = (doc: jsPDF, report: AssessmentOverviewReport): void => {
+    let currentY = drawStudentPerformancePageHeader(doc, true);
+
+    if (report.students.length === 0) {
+        emptySectionMessage(doc, "Sem alunos para exibir neste relatório.", currentY);
+        return;
+    }
+
+    let pageRowIndex = 0;
+    report.students.forEach((student, index) => {
+        const rowStep = STUDENT_PERFORMANCE_ROW_HEIGHT + STUDENT_PERFORMANCE_ROW_GAP;
+        const hasSpace = hasSpaceForChartRow({
+            y: currentY,
+            rowHeight: rowStep,
+            contentBottom: PAGE.contentBottom,
+            bottomGuard: STUDENT_PERFORMANCE_BOTTOM_GUARD,
+        });
+
+        if (!hasSpace && pageRowIndex > 0) {
+            currentY = drawStudentPerformancePageHeader(doc, false);
+            pageRowIndex = 0;
+        }
+
+        currentY = drawStudentPerformanceRow(doc, student, currentY, pageRowIndex, index + 1);
+        pageRowIndex += 1;
     });
 };
 
@@ -618,8 +705,11 @@ export interface CreatedAssessmentOverviewPdf {
     fileName: string;
 }
 
-export const createAssessmentOverviewPdf = (overview: AssessmentOverviewDTO): CreatedAssessmentOverviewPdf => {
-    const report = buildAssessmentOverviewReport(overview);
+export const createAssessmentOverviewPdf = (
+    overview: AssessmentOverviewDTO,
+    studentPerformance?: AssessmentOverviewStudentPerformanceInput,
+): CreatedAssessmentOverviewPdf => {
+    const report = buildAssessmentOverviewReport(overview, new Date(), studentPerformance);
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
     let y = drawTitlePage(doc, report);
@@ -627,13 +717,16 @@ export const createAssessmentOverviewPdf = (overview: AssessmentOverviewDTO): Cr
     y = drawSkillsChart(doc, report, y);
     drawRankingComparison(doc, report, y);
     drawQuestionDistributionCharts(doc, report);
-    drawQuestionsTable(doc, report);
+    drawStudentPerformanceSection(doc, report);
     drawPageDecorations(doc, report);
 
     return { doc, fileName: report.fileName };
 };
 
-export const exportAssessmentOverviewPdf = (overview: AssessmentOverviewDTO): void => {
-    const { doc, fileName } = createAssessmentOverviewPdf(overview);
+export const exportAssessmentOverviewPdf = (
+    overview: AssessmentOverviewDTO,
+    studentPerformance?: AssessmentOverviewStudentPerformanceInput,
+): void => {
+    const { doc, fileName } = createAssessmentOverviewPdf(overview, studentPerformance);
     doc.save(fileName);
 };

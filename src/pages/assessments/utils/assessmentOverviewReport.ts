@@ -1,5 +1,8 @@
 import type {
     AssessmentOverviewDTO,
+    MatrixStudent,
+    MatrixStudentPredictedLevelKey,
+    MatrixStudentResultSummary,
     OverviewByQuestion,
     OverviewRankCriteria,
     OverviewRankedItem,
@@ -99,6 +102,26 @@ export interface ReportRankingSection {
     items: ReportRankingRow[];
 }
 
+export type ReportStudentClassificationKey = MatrixStudentPredictedLevelKey | "SEM_RESPOSTA";
+
+export interface ReportStudentRow {
+    id: number;
+    name: string;
+    classificationKey: ReportStudentClassificationKey;
+    classificationLabel: string;
+    answered: number;
+    correct: number;
+    questions: number;
+    correctLabel: string;
+    percentLabel: string;
+    percentValue: number;
+}
+
+export interface AssessmentOverviewStudentPerformanceInput {
+    students: MatrixStudent[];
+    studentSummaries: MatrixStudentResultSummary[];
+}
+
 export interface AssessmentOverviewReport {
     title: string;
     fileName: string;
@@ -110,6 +133,7 @@ export interface AssessmentOverviewReport {
     hardest: ReportRankingSection;
     easiest: ReportRankingSection;
     questions: ReportQuestionRow[];
+    students: ReportStudentRow[];
 }
 
 const safeNumber = (value: number | null | undefined): number =>
@@ -120,6 +144,13 @@ const clampRatio = (value: number): number => Math.max(0, Math.min(1, value));
 export const formatPercent = (value: number | null | undefined, digits = 1): string => {
     if (value == null || !Number.isFinite(value)) return "-";
     return `${(clampRatio(value) * 100).toFixed(digits)}%`;
+};
+
+const clampScorePercent = (value: number): number => Math.max(0, Math.min(100, value));
+
+export const formatScorePercent = (value: number | null | undefined, digits = 1): string => {
+    if (value == null || !Number.isFinite(value)) return "-";
+    return `${clampScorePercent(value).toFixed(digits)}%`;
 };
 
 export const questionNumberLabel = (question: { display_order?: number | null; question_id: number }): string =>
@@ -256,9 +287,58 @@ const toRankingRows = (items: OverviewRankedItem[]): ReportRankingRow[] =>
             answers: safeNumber(item.answers),
         }));
 
+const toStudentRows = (
+    overview: AssessmentOverviewDTO,
+    studentPerformance?: AssessmentOverviewStudentPerformanceInput,
+): ReportStudentRow[] => {
+    if (!studentPerformance) return [];
+
+    const summaryByStudentId = new Map<number, MatrixStudentResultSummary>();
+    studentPerformance.studentSummaries.forEach((summary) => {
+        summaryByStudentId.set(summary.student_id, summary);
+    });
+
+    const fallbackQuestions = safeNumber(overview.overall.total_questions);
+
+    return [...studentPerformance.students]
+        .map((student) => {
+            const summary = summaryByStudentId.get(student.id);
+            const totals = summary?.score?.totals;
+            const percent = clampScorePercent(safeNumber(summary?.score?.percent));
+            const questions = safeNumber(totals?.questions) || fallbackQuestions;
+            const correct = safeNumber(totals?.correct ?? summary?.summary?.correct);
+            const answered = safeNumber(totals?.answered ?? summary?.summary?.answered);
+            const classificationKey: ReportStudentClassificationKey = summary?.predicted_level?.key ?? "SEM_RESPOSTA";
+            const classificationLabel = summary?.predicted_level?.label?.trim() || "Sem resposta";
+
+            return {
+                id: student.id,
+                name: student.name?.trim() || `Aluno ${student.id}`,
+                classificationKey,
+                classificationLabel,
+                answered,
+                correct,
+                questions,
+                correctLabel: `${correct}/${questions}`,
+                percentLabel: formatScorePercent(percent),
+                percentValue: percent / 100,
+            };
+        })
+        .sort((a, b) => {
+            const byPercent = b.percentValue - a.percentValue;
+            if (byPercent !== 0) return byPercent;
+
+            const byCorrect = b.correct - a.correct;
+            if (byCorrect !== 0) return byCorrect;
+
+            return a.name.localeCompare(b.name, "pt-BR");
+        });
+};
+
 export const buildAssessmentOverviewReport = (
     overview: AssessmentOverviewDTO,
     generatedAt = new Date(),
+    studentPerformance?: AssessmentOverviewStudentPerformanceInput,
 ): AssessmentOverviewReport => {
     const totalQuestions = safeNumber(overview.overall.total_questions);
     const totalAnswers = safeNumber(overview.overall.total_answers);
@@ -311,5 +391,6 @@ export const buildAssessmentOverviewReport = (
             items: toRankingRows(overview.easiest),
         },
         questions: toQuestionRows(overview),
+        students: toStudentRows(overview, studentPerformance),
     };
 };

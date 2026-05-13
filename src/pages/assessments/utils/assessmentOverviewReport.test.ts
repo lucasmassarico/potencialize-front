@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { AssessmentOverviewDTO } from "../../../types/assessments";
+import type { AssessmentOverviewDTO, MatrixStudent, MatrixStudentResultSummary } from "../../../types/assessments";
 import { createAssessmentOverviewPdf } from "./assessmentOverviewPdf";
 import { buildAssessmentOverviewReport, formatDistribution } from "./assessmentOverviewReport";
 
@@ -112,6 +112,36 @@ const baseOverview: AssessmentOverviewDTO = {
     },
 };
 
+const studentPerformance = {
+    students: [
+        { id: 1, name: "Bruno Lima" },
+        { id: 2, name: "Ana Souza" },
+        { id: 3, name: "Caio Martins" },
+    ] satisfies MatrixStudent[],
+    studentSummaries: [
+        {
+            student_id: 1,
+            summary: { answered: 2, correct: 1, accuracy: 0.5 },
+            score: {
+                basis: "by_accuracy",
+                percent: 55.4,
+                totals: { questions: 2, answered: 2, correct: 1, points_total: 2, points_correct: 1 },
+            },
+            predicted_level: { key: "BASICO", label: "Básico", color: "warning" },
+        },
+        {
+            student_id: 2,
+            summary: { answered: 2, correct: 2, accuracy: 1 },
+            score: {
+                basis: "by_accuracy",
+                percent: 95.2,
+                totals: { questions: 2, answered: 2, correct: 2, points_total: 2, points_correct: 2 },
+            },
+            predicted_level: { key: "AVANCADO", label: "Avançado", color: "success" },
+        },
+    ] satisfies MatrixStudentResultSummary[],
+};
+
 describe("assessment overview report mapper", () => {
     it("builds a printable summary with normalized labels and filename", () => {
         const report = buildAssessmentOverviewReport(baseOverview);
@@ -185,6 +215,15 @@ describe("assessment overview report mapper", () => {
         expect(report.questions).toHaveLength(2);
     });
 
+    it("builds a student performance section sorted by score", () => {
+        const report = buildAssessmentOverviewReport(baseOverview, new Date("2026-05-12T12:00:00"), studentPerformance);
+
+        expect(report.students.map((student) => student.name)).toEqual(["Ana Souza", "Bruno Lima", "Caio Martins"]);
+        expect(report.students.map((student) => student.classificationLabel)).toEqual(["Avançado", "Básico", "Sem resposta"]);
+        expect(report.students.map((student) => student.correctLabel)).toEqual(["2/2", "1/2", "0/2"]);
+        expect(report.students.map((student) => student.percentLabel)).toEqual(["95.2%", "55.4%", "0.0%"]);
+    });
+
     it("creates a paginated PDF document for long question lists", () => {
         const manyQuestions = Array.from({ length: 45 }, (_, index) => ({
             ...baseOverview.by_question[index % baseOverview.by_question.length],
@@ -204,5 +243,14 @@ describe("assessment overview report mapper", () => {
 
         expect(fileName).toBe("prova-diagnostica-6-ano-overview.pdf");
         expect(doc.getNumberOfPages()).toBeGreaterThan(5);
+    });
+
+    it("renders student performance in the PDF without the old full questions table", () => {
+        const { doc } = createAssessmentOverviewPdf(baseOverview, studentPerformance);
+        const pdfOutput = doc.output();
+
+        expect(pdfOutput).toContain("Desempenho por aluno");
+        expect(pdfOutput).toContain("Ana Souza");
+        expect(pdfOutput).not.toContain("Lista completa das questões");
     });
 });

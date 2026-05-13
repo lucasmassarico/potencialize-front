@@ -40,8 +40,9 @@ import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 
-import { getAssessmentOverview } from "../../../api/assessments";
+import { getAssessmentMatrix, getAssessmentOverview } from "../../../api/assessments";
 import type { AssessmentOverviewDTO, OverviewByQuestion, OverviewRankCriteria, OverviewRankedItem, SkillLevel } from "../../../types/assessments";
+import type { AssessmentOverviewStudentPerformanceInput } from "../utils/assessmentOverviewReport";
 
 const SKILL_LABELS: Record<SkillLevel, string> = {
     abaixo: "Abaixo do Básico",
@@ -143,6 +144,44 @@ const slugify = (s: string): string => {
         .replace(/^-+|-+$/g, "")
         .toLowerCase();
     return cleaned || "avaliacao";
+};
+
+const PDF_STUDENT_EXPORT_PAGE_SIZE = 200;
+
+const fetchStudentPerformanceForPdf = async (assessmentId: number): Promise<AssessmentOverviewStudentPerformanceInput> => {
+    const firstPage = await getAssessmentMatrix(assessmentId, {
+        students_page: 1,
+        per_page: PDF_STUDENT_EXPORT_PAGE_SIZE,
+    });
+    const totalPages = Math.max(1, safeNumber(firstPage.pagination.total_pages));
+    const remainingPages =
+        totalPages > 1
+            ? await Promise.all(
+                  Array.from({ length: totalPages - 1 }, (_, index) =>
+                      getAssessmentMatrix(assessmentId, {
+                          students_page: index + 2,
+                          per_page: PDF_STUDENT_EXPORT_PAGE_SIZE,
+                      }),
+                  ),
+              )
+            : [];
+    const pages = [firstPage, ...remainingPages];
+    const studentsById = new Map<number, AssessmentOverviewStudentPerformanceInput["students"][number]>();
+    const summariesByStudentId = new Map<number, AssessmentOverviewStudentPerformanceInput["studentSummaries"][number]>();
+
+    pages.forEach((page) => {
+        page.students.forEach((student) => {
+            if (!studentsById.has(student.id)) studentsById.set(student.id, student);
+        });
+        page.student_summaries.forEach((summary) => {
+            summariesByStudentId.set(summary.student_id, summary);
+        });
+    });
+
+    return {
+        students: Array.from(studentsById.values()),
+        studentSummaries: Array.from(summariesByStudentId.values()),
+    };
 };
 
 interface KPICardProps {
@@ -500,8 +539,11 @@ export default function AssessmentOverview() {
         setPdfExportError(null);
         setIsPdfExporting(true);
         try {
-            const { exportAssessmentOverviewPdf } = await import("../utils/assessmentOverviewPdf");
-            exportAssessmentOverviewPdf(ov);
+            const [{ exportAssessmentOverviewPdf }, studentPerformance] = await Promise.all([
+                import("../utils/assessmentOverviewPdf"),
+                fetchStudentPerformanceForPdf(ov.assessment.id),
+            ]);
+            exportAssessmentOverviewPdf(ov, studentPerformance);
         } catch {
             setPdfExportError("Não foi possível gerar o PDF. Tente novamente.");
         } finally {
