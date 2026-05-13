@@ -7,9 +7,9 @@ interface Props {
     onParsed: (drafts: BulkRowDraft[]) => void;
 }
 
-const PLACEHOLDER = `Enunciado;Nível;Peso;Alternativa correta;Código do descritor
-Quanto é 2 + 2?;Básico;1;A;
-Multiplique 3 × 4;Adequado;1.5;C;`;
+const PLACEHOLDER = `Número da questão;Enunciado;Nível;Peso;Alternativa correta;Código do descritor
+;Quanto é 2 + 2?;Básico;1;A;
+;Multiplique 3 × 4;Adequado;1.5;C;`;
 
 export default function QuestionsBulkPaste({ onParsed }: Props) {
     const [raw, setRaw] = React.useState("");
@@ -35,6 +35,7 @@ export default function QuestionsBulkPaste({ onParsed }: Props) {
                 Cole linhas no formato CSV, TSV ou colagem direta do Excel. Aceita os delimitadores
                 <b> ; </b>, <b>TAB</b> ou <b>,</b>. Use os cabeçalhos amigáveis em português:
                 <b> Enunciado</b>, <b>Nível</b>, <b>Peso</b>, <b>Alternativa correta</b>, <b>Código do descritor</b>.
+                O cabeçalho <b>Número da questão</b> também pode ser usado e é opcional.
             </Typography>
 
             <TextField
