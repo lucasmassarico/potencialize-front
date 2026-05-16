@@ -1,5 +1,6 @@
 import React from "react";
 import {
+    Autocomplete,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -17,11 +18,14 @@ import AutoGraphOutlinedIcon from "@mui/icons-material/AutoGraphOutlined";
 import QuizOutlinedIcon from "@mui/icons-material/QuizOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import { useForm } from "react-hook-form";
+import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import dayjs from "../../../lib/dayjs";
 import { createAssessment, updateAssessment } from "../../../api/assessments";
+import { listClasses } from "../../../api/classes";
 import type { AssessmentOut, AssessmentCreate, WeightMode, SubjectKind } from "../../../types/assessments";
+import type { ClassOut } from "../../../types/classes";
 
 const subjectEnum = z.enum([
     "portugues",
@@ -56,12 +60,32 @@ type FormValues = z.input<typeof schema>;
 interface Props {
     open: boolean;
     initial?: AssessmentOut;
-    classId: number;
+    /** Quando definido, fixa a turma; quando undefined, mostra Autocomplete de turma. */
+    classId?: number;
     onClose: (changed: boolean) => void;
 }
 
 export default function AssessmentFormDialog({ open, initial, classId, onClose }: Props) {
     const isEdit = !!initial;
+    const isStandalone = classId === undefined;
+
+    const fixedClassId = classId ?? initial?.class_id;
+    const [selectedClassId, setSelectedClassId] = React.useState<number | undefined>(fixedClassId);
+    const [classError, setClassError] = React.useState<string | null>(null);
+
+    const classesQuery = useQuery({
+        queryKey: ["classes", "list-for-assessment-form"],
+        queryFn: () => listClasses("id,name,year"),
+        enabled: open && isStandalone && !isEdit,
+        staleTime: 60_000,
+    });
+
+    React.useEffect(() => {
+        if (open) {
+            setSelectedClassId(fixedClassId);
+            setClassError(null);
+        }
+    }, [open, fixedClassId]);
 
     const {
         register,
@@ -85,12 +109,17 @@ export default function AssessmentFormDialog({ open, initial, classId, onClose }
 
     const onSubmit = handleSubmit(async (values) => {
         setErrMsg(null);
+        const effectiveClassId = classId ?? initial?.class_id ?? selectedClassId;
+        if (!effectiveClassId) {
+            setClassError("Selecione a turma.");
+            return;
+        }
         try {
             const payload: AssessmentCreate = {
                 title: values.title,
                 date: values.date,
                 weight_mode: values.weight_mode,
-                class_id: classId,
+                class_id: effectiveClassId,
                 subject_kind: values.subject_kind,
                 subject_other: values.subject_kind === "outro" ? values.subject_other || "" : null,
             };
@@ -113,9 +142,32 @@ export default function AssessmentFormDialog({ open, initial, classId, onClose }
             <DialogContent dividers aria-busy={isSubmitting ? "true" : "false"} aria-live="polite">
                 <form onSubmit={onSubmit} id="assessment-form">
                     <Stack spacing={2} sx={{ mt: 1 }}>
+                        {isStandalone && !isEdit && (
+                            <Autocomplete<ClassOut>
+                                options={classesQuery.data ?? []}
+                                loading={classesQuery.isLoading}
+                                getOptionLabel={(c) => (c.year ? `${c.name} · ${c.year}` : c.name)}
+                                isOptionEqualToValue={(opt, val) => opt.id === val.id}
+                                value={(classesQuery.data ?? []).find((c) => c.id === selectedClassId) ?? null}
+                                onChange={(_, val) => {
+                                    setSelectedClassId(val?.id);
+                                    if (val) setClassError(null);
+                                }}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="Turma"
+                                        error={!!classError}
+                                        helperText={classError || "Selecione a turma desta avaliação."}
+                                        required
+                                    />
+                                )}
+                            />
+                        )}
+
                         <TextField
                             label="Título"
-                            autoFocus
+                            autoFocus={!isStandalone || isEdit}
                             fullWidth
                             defaultValue={initial?.title || ""}
                             {...register("title")}

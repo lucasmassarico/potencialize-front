@@ -33,6 +33,7 @@ const router = createBrowserRouter([
                     { index: true, lazy: lazyPage(() => import("../pages/Dashboard")) },
                     { path: "descriptors", lazy: lazyPage(() => import("../pages/descriptors/DescriptorsList")) },
                     { path: "classes", lazy: lazyPage(() => import("../pages/classes/ClassesList")) },
+                    { path: "assessments", lazy: lazyPage(() => import("../pages/assessments/AssessmentsList")) },
                     {
                         path: "classes/:id",
                         lazy: lazyPage(() => import("../pages/classes/ClassDetail")),
@@ -46,7 +47,7 @@ const router = createBrowserRouter([
                         ],
                     },
                     {
-                        path: "assessments/:assessmentId",
+                        path: "classes/:classId/assessments/:assessmentId",
                         lazy: lazyPage(() => import("../pages/assessments/AssessmentDetail")),
                         children: [
                             { index: true, lazy: lazyPage(() => import("../pages/assessments/tabs/AssessmentOverview")) },
@@ -61,6 +62,10 @@ const router = createBrowserRouter([
                                 lazy: lazyPage(() => import("../pages/assessments/tabs/AssessmentGradingPolicyTab")),
                             },
                         ],
+                    },
+                    {
+                        path: "assessments/:assessmentId/*",
+                        lazy: lazyPage(() => import("../pages/assessments/LegacyAssessmentRedirect")),
                     },
                 ],
             },

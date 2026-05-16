@@ -29,7 +29,7 @@ function deepEqual(a: AssessmentSkillWeightsOut | null, b: AssessmentSkillWeight
 }
 
 export default function AssessmentWeights() {
-    const { assessmentId } = useParams<{ assessmentId: string }>();
+    const { classId, assessmentId } = useParams<{ classId: string; assessmentId: string }>();
     const qc = useQueryClient();
     const nav = useNavigate();
 
@@ -75,7 +75,7 @@ export default function AssessmentWeights() {
 
     // BLOQUEIO: se não é by_skill, redireciona
     if (!loadingHead && head && head.weight_mode !== "by_skill") {
-        return <Navigate to={`/assessments/${assessmentId}`} replace state={{ reason: "not_by_skill" }} />;
+        return <Navigate to={`/classes/${classId}/assessments/${assessmentId}`} replace state={{ reason: "not_by_skill" }} />;
     }
 
     const isDirty = !deepEqual(local, serverSnapshot);

@@ -84,14 +84,24 @@ function subjectLabel(kind?: string, other?: string | null) {
 }
 
 /** Card clicável (mobile/tablet) */
-function AssessmentCard({ a, onEdit, onDelete }: { a: AssessmentOut; onEdit: (a: AssessmentOut) => void; onDelete: (a: AssessmentOut) => void }) {
+function AssessmentCard({
+    a,
+    classId,
+    onEdit,
+    onDelete,
+}: {
+    a: AssessmentOut;
+    classId: number;
+    onEdit: (a: AssessmentOut) => void;
+    onDelete: (a: AssessmentOut) => void;
+}) {
     const nav = useNavigate();
     const dateLabel = dayjs(a.date).format("DD/MM/YYYY");
 
     return (
         <Card variant="outlined" sx={{ height: "100%" }}>
             <CardActionArea
-                onClick={() => nav(`/assessments/${a.id}`)}
+                onClick={() => nav(`/classes/${classId}/assessments/${a.id}`)}
                 sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}
                 aria-label={`Abrir avaliação ${a.title}`}
             >
@@ -257,6 +267,7 @@ export default function ClassAssessments() {
                                         <Grid key={a.id} size={{ xs: 12, sm: 6 }}>
                                             <AssessmentCard
                                                 a={a}
+                                                classId={classId}
                                                 onEdit={(it) => {
                                                     setEditItem(it);
                                                     setFormOpen(true);
@@ -308,11 +319,11 @@ export default function ClassAssessments() {
                                                     })}
                                                     tabIndex={0}
                                                     role="button"
-                                                    onClick={() => nav(`/assessments/${a.id}`)}
+                                                    onClick={() => nav(`/classes/${classId}/assessments/${a.id}`)}
                                                     onKeyDown={(e) => {
                                                         if (e.key === "Enter" || e.key === " ") {
                                                             e.preventDefault();
-                                                            nav(`/assessments/${a.id}`);
+                                                            nav(`/classes/${classId}/assessments/${a.id}`);
                                                         }
                                                     }}
                                                     aria-label={`Abrir avaliação ${a.title}`}
@@ -320,7 +331,7 @@ export default function ClassAssessments() {
                                                     <TableCell sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                                                         <MUILink
                                                             component={RouterLink}
-                                                            to={`/assessments/${a.id}`}
+                                                            to={`/classes/${classId}/assessments/${a.id}`}
                                                             color="inherit"
                                                             underline="none"
                                                             onClick={(e) => e.stopPropagation()}

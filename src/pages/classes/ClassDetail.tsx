@@ -1,20 +1,28 @@
 // src/pages/classes/ClassDetail.tsx
-import { useParams, Outlet, useLocation, Link as RouterLink } from "react-router-dom";
+import { useParams, Outlet, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Box, Button, Typography, Stack, Card, CardContent, Breadcrumbs, Link, Skeleton } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { Box, Card, CardContent, Chip } from "@mui/material";
+import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
+import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 
-import { getClass } from "../../api/classes";
-import ClassSubnav from "./components/ClassSubnav";
+import { getClass, listClasses } from "../../api/classes";
 import { TableSkeleton, OverviewSkeleton } from "../../components/Skeletons";
 import PageGuard from "../../components/PageGuard";
 import { normalizeAxiosError } from "../../lib/error";
+import { EntityHeader } from "../../components/layout/EntityHeader";
+import { EntitySwitcher } from "../../components/layout/EntitySwitcher";
 
 export default function ClassDetail() {
     const { id } = useParams<{ id: string }>();
     const { pathname } = useLocation();
 
-    const current = pathname.endsWith("/assessments") ? "assessments" : pathname.endsWith("/students") ? "students" : "overview";
+    const tabValue: "overview" | "assessments" | "students" = pathname.endsWith("/assessments")
+        ? "assessments"
+        : pathname.endsWith("/students")
+        ? "students"
+        : "overview";
 
     const { data, isLoading, isError, error, refetch } = useQuery({
         queryKey: ["class", id],
@@ -27,62 +35,88 @@ export default function ClassDetail() {
         },
     });
 
-    const titleText = data?.name ? `${data.name} #${id}` : `Turma #${id}`;
+    const { data: classList } = useQuery({
+        queryKey: ["classes", "switcher"],
+        queryFn: () => listClasses("id,name,year"),
+        staleTime: 60_000,
+    });
+
+    const base = `/classes/${id}`;
+    const title = data?.name ?? `Turma #${id}`;
+
+    const switcherItems = (classList ?? []).map((c) => ({
+        id: c.id,
+        label: c.year ? `${c.name} · ${c.year}` : c.name,
+        to: `/classes/${c.id}`,
+    }));
 
     return (
-        <Box sx={{ display: "grid", gap: 2 }}>
-            {/* Header com skeleton e botão Voltar fixo para /classes */}
-            <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ xs: "flex-start", sm: "center" }} spacing={1.5}>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                    {isLoading ? (
+        <Box sx={{ display: "grid", gap: 3 }}>
+            <EntityHeader
+                eyebrow="Turma"
+                crumbs={[
+                    { label: "Turmas", to: "/classes" },
+                    { label: title },
+                ]}
+                title={title}
+                isLoading={isLoading}
+                switcher={
+                    classList && classList.length > 1 ? (
+                        <EntitySwitcher
+                            label="Trocar de turma"
+                            items={switcherItems}
+                            currentId={Number(id)}
+                            placeholder="Buscar turma…"
+                            ariaLabel="Trocar de turma"
+                        />
+                    ) : null
+                }
+                meta={
+                    data && (
                         <>
-                            <Skeleton variant="text" width={260} height={32} />
-                            <Skeleton variant="text" width={220} />
-                        </>
-                    ) : (
-                        <>
-                            <Typography variant="h5" fontWeight={700} noWrap>
-                                {titleText}
-                            </Typography>
-                            {data && (
-                                <Typography variant="body2" sx={{ opacity: 0.8 }} noWrap>
-                                    Ano: <b>{data.year}</b> · Professor(a): <b>{data.teacher?.name ?? "—"}</b>
-                                </Typography>
+                            {data.year && (
+                                <Chip
+                                    size="small"
+                                    variant="outlined"
+                                    icon={<CalendarTodayRoundedIcon />}
+                                    label={`Ano: ${data.year}`}
+                                />
+                            )}
+                            {data.teacher?.name && (
+                                <Chip
+                                    size="small"
+                                    variant="outlined"
+                                    icon={<PersonOutlineRoundedIcon />}
+                                    label={`Prof.: ${data.teacher.name}`}
+                                />
+                            )}
+                            {data.students && (
+                                <Chip
+                                    size="small"
+                                    variant="outlined"
+                                    icon={<GroupsRoundedIcon />}
+                                    label={`${data.students.length} aluno${data.students.length === 1 ? "" : "s"}`}
+                                />
+                            )}
+                            {data.assessments && (
+                                <Chip
+                                    size="small"
+                                    variant="outlined"
+                                    icon={<AssignmentOutlinedIcon />}
+                                    label={`${data.assessments.length} avaliaç${data.assessments.length === 1 ? "ão" : "ões"}`}
+                                />
                             )}
                         </>
-                    )}
-                </Box>
+                    )
+                }
+                tabs={[
+                    { key: "overview", label: "Visão geral", to: base },
+                    { key: "assessments", label: "Avaliações", to: `${base}/assessments` },
+                    { key: "students", label: "Alunos", to: `${base}/students` },
+                ]}
+                tabValue={tabValue}
+            />
 
-                {/* Voltar para a listagem de turmas (sem usar history) */}
-                <Button component={RouterLink} to="/classes" startIcon={<ArrowBackIcon />} variant="text">
-                    Turmas
-                </Button>
-            </Stack>
-
-            {/* Breadcrumbs (reforça contexto e também leva a /classes) */}
-            <Breadcrumbs aria-label="breadcrumb" sx={{ fontSize: 13 }}>
-                <Link component={RouterLink} color="inherit" to="/classes">
-                    Turmas
-                </Link>
-                <Typography color="text.primary">{data?.name ?? `#${id}`}</Typography>
-            </Breadcrumbs>
-
-            {/* Subnav (se quiser “grudar”, basta envolver com position: sticky; bg e zIndex) */}
-            <Box
-                sx={{
-                    borderBottom: 1,
-                    borderColor: "divider",
-                    // Para "grudar" abaixo do AppBar:
-                    // position: "sticky",
-                    // top: 0,
-                    // zIndex: (t) => t.zIndex.appBar,
-                    // bgcolor: "background.paper",
-                }}
-            >
-                <ClassSubnav />
-            </Box>
-
-            {/* Conteúdo com guard + skeleton por aba */}
             <PageGuard
                 isLoading={isLoading}
                 error={isError ? error : undefined}
@@ -92,13 +126,12 @@ export default function ClassDetail() {
                 skeleton={
                     <Card>
                         <CardContent>
-                            {current === "assessments" && <TableSkeleton headers={["Título", "Data", "Peso", "Ações"]} rows={5} />}
-                            {current === "students" && <TableSkeleton headers={["Nome", "Código", "Ações"]} rows={8} />}
-                            {current === "overview" && <OverviewSkeleton />}
+                            {tabValue === "assessments" && <TableSkeleton headers={["Título", "Data", "Peso", "Ações"]} rows={5} />}
+                            {tabValue === "students" && <TableSkeleton headers={["Nome", "Código", "Ações"]} rows={8} />}
+                            {tabValue === "overview" && <OverviewSkeleton />}
                         </CardContent>
                     </Card>
                 }
-                // Se por regra de negócio "data" vier vazio, considera NotFound:
                 notFoundWhen={({ data }) => !data}
             >
                 <Outlet context={{ classId: Number(id), klass: data }} />

@@ -4,7 +4,9 @@
       "Bash(npx tsc *)",
       "Bash(echo \"EXIT=$?\")",
       "Bash(npx ecc-agentshield *)",
-      "Bash(dir d:\\\\Projetos\\\\Potencialize\\\\potencialize-front)"
+      "Bash(dir d:\\\\Projetos\\\\Potencialize\\\\potencialize-front)",
+      "Bash(node -e \"const s=require\\('./api_swagger.json'\\); const p=s.paths['/assessments/']; console.log\\(JSON.stringify\\(p, null, 2\\).slice\\(0, 6000\\)\\);\")",
+      "Bash(node -e \"const s=require\\('./api_swagger.json'\\); console.log\\(JSON.stringify\\(s.definitions.AssessmentOut, null, 2\\)\\);\")"
     ]
   }
 }

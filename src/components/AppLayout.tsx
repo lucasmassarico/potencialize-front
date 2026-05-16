@@ -20,6 +20,7 @@ import {
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import SchoolIcon from "@mui/icons-material/School";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import RuleIcon from "@mui/icons-material/Rule";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -40,6 +41,7 @@ export default function AppLayout() {
     const items = [
         { label: "Dashboard", icon: <DashboardIcon />, to: "/" },
         { label: "Turmas", icon: <SchoolIcon />, to: "/classes" },
+        { label: "Avaliações", icon: <AssignmentOutlinedIcon />, to: "/assessments" },
         { label: "Descritores", icon: <RuleIcon />, to: "/descriptors" },
     ];
 
@@ -98,10 +100,13 @@ export default function AppLayout() {
                 <Toolbar />
                 <Box sx={{ overflow: "auto" }}>
                     <List>
-                        {items.map((it) => (
+                        {items.map((it) => {
+                            const isRoot = it.to === "/";
+                            const isSelected = isRoot ? pathname === "/" : pathname === it.to || pathname.startsWith(`${it.to}/`);
+                            return (
                             <ListItem key={it.to} disablePadding>
                                 <ListItemButton
-                                    selected={pathname === it.to}
+                                    selected={isSelected}
                                     onClick={() => {
                                         nav(it.to);
                                         if (isMobile) setOpen(false);
@@ -134,7 +139,8 @@ export default function AppLayout() {
                                     />
                                 </ListItemButton>
                             </ListItem>
-                        ))}
+                            );
+                        })}
                     </List>
                     <Divider />
                 </Box>
