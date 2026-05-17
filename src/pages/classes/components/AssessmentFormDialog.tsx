@@ -22,10 +22,12 @@ import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import dayjs from "../../../lib/dayjs";
+import { normalizeAxiosError } from "../../../lib/error";
 import { createAssessment, updateAssessment } from "../../../api/assessments";
 import { listClasses } from "../../../api/classes";
-import type { AssessmentOut, AssessmentCreate, WeightMode, SubjectKind } from "../../../types/assessments";
+import type { AssessmentOut, WeightMode, SubjectKind } from "../../../types/assessments";
 import type { ClassOut } from "../../../types/classes";
+import { buildAssessmentPayload } from "../utils/assessmentFormPayload";
 
 const subjectEnum = z.enum([
     "portugues",
@@ -44,18 +46,29 @@ const subjectEnum = z.enum([
 
 const schema = z
     .object({
-        title: z.string().min(1, "Informe o título"),
+        title: z.string().trim().min(1, "Informe o título").max(160, "Use até 160 caracteres."),
         date: z.string().min(1, "Informe a data"),
         weight_mode: z.enum(["fixed_all", "by_skill", "per_question"]),
         subject_kind: subjectEnum,
         subject_other: z
             .string()
+            .max(80, "Use até 80 caracteres.")
             .optional()
             .transform((v) => (v ?? "").trim()),
     })
     .refine((data) => data.subject_kind !== "outro" || (data.subject_other?.length ?? 0) > 0, { path: ["subject_other"], message: "Informe a disciplina." });
 
 type FormValues = z.input<typeof schema>;
+
+function getDefaultValues(initial?: AssessmentOut): FormValues {
+    return {
+        title: initial?.title || "",
+        date: initial ? dayjs(initial.date).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
+        weight_mode: (initial?.weight_mode as WeightMode) || "fixed_all",
+        subject_kind: (initial?.subject_kind as SubjectKind) || "geral",
+        subject_other: initial?.subject_other || "",
+    };
+}
 
 interface Props {
     open: boolean;
@@ -90,22 +103,23 @@ export default function AssessmentFormDialog({ open, initial, classId, onClose }
     const {
         register,
         handleSubmit,
+        reset,
         watch,
         formState: { errors, isSubmitting },
     } = useForm<FormValues>({
         resolver: zodResolver(schema),
-        defaultValues: {
-            title: initial?.title || "",
-            date: initial ? dayjs(initial.date).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
-            weight_mode: (initial?.weight_mode as WeightMode) || "fixed_all",
-            subject_kind: (initial?.subject_kind as SubjectKind) || "geral",
-            subject_other: initial?.subject_other || "",
-        },
+        defaultValues: getDefaultValues(initial),
         shouldFocusError: true,
     });
 
     const [errMsg, setErrMsg] = React.useState<string | null>(null);
     const chosenSubject = watch("subject_kind");
+
+    React.useEffect(() => {
+        if (!open) return;
+        reset(getDefaultValues(initial));
+        setErrMsg(null);
+    }, [initial, open, reset]);
 
     const onSubmit = handleSubmit(async (values) => {
         setErrMsg(null);
@@ -115,14 +129,7 @@ export default function AssessmentFormDialog({ open, initial, classId, onClose }
             return;
         }
         try {
-            const payload: AssessmentCreate = {
-                title: values.title,
-                date: values.date,
-                weight_mode: values.weight_mode,
-                class_id: effectiveClassId,
-                subject_kind: values.subject_kind,
-                subject_other: values.subject_kind === "outro" ? values.subject_other || "" : null,
-            };
+            const payload = buildAssessmentPayload(values, effectiveClassId);
             if (isEdit) {
                 await updateAssessment(initial!.id, payload);
             } else {
@@ -130,8 +137,7 @@ export default function AssessmentFormDialog({ open, initial, classId, onClose }
             }
             onClose(true);
         } catch (e: unknown) {
-            const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erro ao salvar avaliação";
-            setErrMsg(msg);
+            setErrMsg(normalizeAxiosError(e).message || "Erro ao salvar avaliação");
         }
     });
 
@@ -169,7 +175,6 @@ export default function AssessmentFormDialog({ open, initial, classId, onClose }
                             label="Título"
                             autoFocus={!isStandalone || isEdit}
                             fullWidth
-                            defaultValue={initial?.title || ""}
                             {...register("title")}
                             error={!!errors.title}
                             helperText={errors.title?.message}
@@ -178,7 +183,6 @@ export default function AssessmentFormDialog({ open, initial, classId, onClose }
                         <TextField
                             label="Data"
                             type="date"
-                            defaultValue={initial ? dayjs(initial.date).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD")}
                             {...register("date")}
                             error={!!errors.date}
                             helperText={errors.date?.message || "Informe a data da avaliação."}
@@ -188,7 +192,6 @@ export default function AssessmentFormDialog({ open, initial, classId, onClose }
                         <TextField
                             select
                             label="Disciplina"
-                            defaultValue={initial?.subject_kind || "geral"}
                             {...register("subject_kind")}
                             error={!!errors.subject_kind}
                             helperText={errors.subject_kind?.message || "Selecione a disciplina desta avaliação."}
@@ -231,7 +234,6 @@ export default function AssessmentFormDialog({ open, initial, classId, onClose }
                         <TextField
                             select
                             label="Modo de peso"
-                            defaultValue={initial?.weight_mode || "fixed_all"}
                             {...register("weight_mode")}
                             error={!!errors.weight_mode}
                             helperText={errors.weight_mode?.message || "Como as questões serão ponderadas no cálculo da nota."}

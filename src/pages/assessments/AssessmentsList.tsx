@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Alert, Box, Button, Snackbar, Stack } from "@mui/material";
+import { Alert, Box, Button, Pagination, Snackbar, Stack } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ReplayIcon from "@mui/icons-material/Replay";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -26,9 +26,35 @@ export default function AssessmentsList() {
     const [toDelete, setToDelete] = React.useState<AssessmentOut | null>(null);
     const [snack, setSnack] = React.useState<{ open: boolean; msg: string; severity: "success" | "error" }>({ open: false, msg: "", severity: "success" });
 
+    const releaseFocus = React.useCallback((event?: React.MouseEvent<HTMLElement>) => {
+        event?.currentTarget.blur();
+        if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
+    }, []);
+
+    const openCreateForm = React.useCallback(
+        (event?: React.MouseEvent<HTMLElement>) => {
+            releaseFocus(event);
+            setEditItem(null);
+            setFormOpen(true);
+        },
+        [releaseFocus],
+    );
+
+    const openEditForm = React.useCallback(
+        (assessment: AssessmentOut) => {
+            releaseFocus();
+            setEditItem(assessment);
+            setFormOpen(true);
+        },
+        [releaseFocus],
+    );
+
     const deletion = useMutation({
         mutationFn: (id: number) => deleteAssessment(id),
         onSuccess: () => {
+            if (state.filtered.length === 1 && state.page > 1) state.setPage(state.page - 1);
             qc.invalidateQueries({ queryKey: ["assessments"] });
             qc.invalidateQueries({ queryKey: ["classes"] });
             setSnack({ open: true, msg: "Avaliação excluída.", severity: "success" });
@@ -43,6 +69,7 @@ export default function AssessmentsList() {
         setFormOpen(false);
         setEditItem(null);
         if (changed) {
+            state.setPage(1);
             qc.invalidateQueries({ queryKey: ["assessments"] });
             qc.invalidateQueries({ queryKey: ["classes"] });
             setSnack({ open: true, msg: "Avaliação salva.", severity: "success" });
@@ -64,10 +91,7 @@ export default function AssessmentsList() {
                         size="small"
                         variant="contained"
                         startIcon={<AddRoundedIcon />}
-                        onClick={() => {
-                            setEditItem(null);
-                            setFormOpen(true);
-                        }}
+                        onClick={openCreateForm}
                         sx={{ textTransform: "none", fontWeight: 600 }}
                     >
                         Nova avaliação
@@ -75,7 +99,7 @@ export default function AssessmentsList() {
                 }
             />
 
-            <AssessmentsKpiStrip kpis={state.kpis} filtered={state.hasActiveFilters} isLoading={state.isLoading} />
+            <AssessmentsKpiStrip kpis={state.kpis} filtered={state.hasActiveFilters} isLoading={state.isLoading} pageScoped={state.totalPages > 1} />
 
             <AssessmentsToolbar
                 filters={state.filters}
@@ -83,8 +107,7 @@ export default function AssessmentsList() {
                 clearFilters={state.clearFilters}
                 hasActiveFilters={state.hasActiveFilters}
                 classes={state.classes}
-                perClassCount={state.perClassCount}
-                totalShown={state.filtered.length}
+                totalShown={state.total}
             />
 
             <AssessmentsViewControls
@@ -124,10 +147,7 @@ export default function AssessmentsList() {
                             <Button
                                 variant="contained"
                                 startIcon={<AddRoundedIcon />}
-                                onClick={() => {
-                                    setEditItem(null);
-                                    setFormOpen(true);
-                                }}
+                                onClick={openCreateForm}
                                 sx={{ textTransform: "none", fontWeight: 600 }}
                             >
                                 Criar primeira avaliação
@@ -149,16 +169,18 @@ export default function AssessmentsList() {
                                         className={className}
                                         showClass={state.groupBy !== "class"}
                                         isLast={idx === g.items.length - 1}
-                                        onEdit={() => {
-                                            setEditItem(a);
-                                            setFormOpen(true);
-                                        }}
+                                        onEdit={() => openEditForm(a)}
                                         onDelete={() => setToDelete(a)}
                                     />
                                 );
                             })}
                         </AssessmentsGroup>
                     ))}
+                    {state.totalPages > 1 && (
+                        <Stack direction="row" justifyContent="center" sx={{ pt: 1 }}>
+                            <Pagination page={state.page} count={state.totalPages} onChange={(_, value) => state.setPage(value)} />
+                        </Stack>
+                    )}
                 </Stack>
             )}
 

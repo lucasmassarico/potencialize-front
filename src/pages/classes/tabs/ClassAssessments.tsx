@@ -1,6 +1,6 @@
 // src/pages/classes/tabs/ClassAssessments.tsx
 import React from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     Box,
     Button,
@@ -23,6 +23,7 @@ import {
     useMediaQuery,
     CardActionArea,
     Skeleton,
+    Pagination,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -38,6 +39,8 @@ import { useClassContext } from "./useClassContext";
 import AssessmentFormDialog from "../components/AssessmentFormDialog";
 import { TableSkeleton } from "../../../components/Skeletons";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
+
+const ASSESSMENTS_PER_PAGE = 20;
 
 /** Helpers para label/cor */
 function weightLabel(mode: AssessmentOut["weight_mode"]) {
@@ -126,6 +129,7 @@ function AssessmentCard({
                         aria-label="editar avaliação"
                         onClick={(e) => {
                             e.stopPropagation();
+                            e.currentTarget.blur();
                             onEdit(a);
                         }}
                     >
@@ -174,21 +178,47 @@ export default function ClassAssessments() {
     const qc = useQueryClient();
     const nav = useNavigate();
     const isMdUp = useMediaQuery("(min-width:900px)");
+    const [page, setPage] = React.useState(1);
 
-    // Inclui subject_kind/subject_other nos X-Fields
+    React.useEffect(() => {
+        setPage(1);
+    }, [classId]);
+
     const { data, isLoading, isError, refetch } = useQuery({
-        queryKey: ["assessments"],
-        queryFn: () => listAssessments("id,title,date,weight_mode,class_id,subject_kind,subject_other"),
+        queryKey: ["assessments", "class", { classId, page, perPage: ASSESSMENTS_PER_PAGE }],
+        queryFn: () =>
+            listAssessments({
+                params: {
+                    class_id: classId,
+                    page,
+                    per_page: ASSESSMENTS_PER_PAGE,
+                    sort: "-date",
+                },
+            }),
+        placeholderData: keepPreviousData,
         staleTime: 30_000,
     });
 
-    const list = (data || []).filter((a) => a.class_id === classId);
+    const list = data?.items ?? [];
+    const totalPages = Math.max(1, data?.total_pages ?? 1);
 
     const [formOpen, setFormOpen] = React.useState(false);
     const [editItem, setEditItem] = React.useState<AssessmentOut | null>(null);
     const [confirmOpen, setConfirmOpen] = React.useState(false);
     const [toDelete, setToDelete] = React.useState<AssessmentOut | null>(null);
     const [snack, setSnack] = React.useState<{ open: boolean; message: string; severity: "success" | "error" | "info" } | null>(null);
+
+    const openCreateForm = React.useCallback((event?: React.MouseEvent<HTMLElement>) => {
+        event?.currentTarget.blur();
+        setEditItem(null);
+        setFormOpen(true);
+    }, []);
+
+    const openEditForm = React.useCallback((assessment: AssessmentOut, event?: React.MouseEvent<HTMLElement>) => {
+        event?.currentTarget.blur();
+        setEditItem(assessment);
+        setFormOpen(true);
+    }, []);
 
     const handleDelete = async () => {
         if (!toDelete) return;
@@ -197,6 +227,7 @@ export default function ClassAssessments() {
             setSnack({ open: true, message: "Avaliação removida.", severity: "success" });
             setConfirmOpen(false);
             setToDelete(null);
+            if (list.length === 1 && page > 1) setPage(page - 1);
             qc.invalidateQueries({ queryKey: ["assessments"] });
         } catch {
             setSnack({ open: true, message: "Falha ao remover a avaliação.", severity: "error" });
@@ -212,10 +243,7 @@ export default function ClassAssessments() {
                 <Button
                     variant="contained"
                     startIcon={<AddIcon />}
-                    onClick={() => {
-                        setEditItem(null);
-                        setFormOpen(true);
-                    }}
+                    onClick={openCreateForm}
                 >
                     Nova avaliação
                 </Button>
@@ -245,10 +273,7 @@ export default function ClassAssessments() {
                                 <Button
                                     color="info"
                                     variant="outlined"
-                                    onClick={() => {
-                                        setEditItem(null);
-                                        setFormOpen(true);
-                                    }}
+                                    onClick={openCreateForm}
                                 >
                                     Criar avaliação
                                 </Button>
@@ -268,10 +293,7 @@ export default function ClassAssessments() {
                                             <AssessmentCard
                                                 a={a}
                                                 classId={classId}
-                                                onEdit={(it) => {
-                                                    setEditItem(it);
-                                                    setFormOpen(true);
-                                                }}
+                                                onEdit={openEditForm}
                                                 onDelete={(it) => {
                                                     setToDelete(it);
                                                     setConfirmOpen(true);
@@ -387,8 +409,7 @@ export default function ClassAssessments() {
                                                             aria-label="editar"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                setEditItem(a);
-                                                                setFormOpen(true);
+                                                                openEditForm(a, e);
                                                             }}
                                                         >
                                                             <EditIcon />
@@ -412,6 +433,12 @@ export default function ClassAssessments() {
                             </Box>
                         </>
                     )}
+
+                    {!isLoading && !isError && totalPages > 1 && (
+                        <Stack direction="row" justifyContent="center" sx={{ mt: 2 }}>
+                            <Pagination page={page} count={totalPages} onChange={(_, value) => setPage(value)} />
+                        </Stack>
+                    )}
                 </CardContent>
             </Card>
 
@@ -431,7 +458,10 @@ export default function ClassAssessments() {
                 onClose={(changed) => {
                     setFormOpen(false);
                     setEditItem(null);
-                    if (changed) qc.invalidateQueries({ queryKey: ["assessments"] });
+                    if (changed) {
+                        setPage(1);
+                        qc.invalidateQueries({ queryKey: ["assessments"] });
+                    }
                 }}
             />
 

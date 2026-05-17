@@ -4,6 +4,7 @@ interface Props {
     kpis: { total: number; next7: number; thisMonth: number; subjects: number };
     filtered: boolean;
     isLoading?: boolean;
+    pageScoped?: boolean;
 }
 
 interface Tile {
@@ -12,12 +13,12 @@ interface Tile {
     hint?: string;
 }
 
-export function AssessmentsKpiStrip({ kpis, filtered, isLoading = false }: Props) {
+export function AssessmentsKpiStrip({ kpis, filtered, isLoading = false, pageScoped = false }: Props) {
     const tiles: Tile[] = [
         { label: "Total", value: kpis.total, hint: filtered ? "filtrado" : undefined },
-        { label: "Próximos 7 dias", value: kpis.next7 },
-        { label: "Este mês", value: kpis.thisMonth },
-        { label: "Disciplinas", value: kpis.subjects },
+        { label: "Próximos 7 dias", value: kpis.next7, hint: pageScoped ? "nesta página" : undefined },
+        { label: "Este mês", value: kpis.thisMonth, hint: pageScoped ? "nesta página" : undefined },
+        { label: "Disciplinas", value: kpis.subjects, hint: pageScoped ? "nesta página" : undefined },
     ];
 
     return (

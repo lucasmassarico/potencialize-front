@@ -49,10 +49,7 @@
                     "200": {
                         "description": "Success",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/AssessmentOut"
-                            }
+                            "$ref": "#/definitions/AssessmentList"
                         }
                     },
                     "422": {
@@ -70,6 +67,66 @@
                 },
                 "operationId": "get_assessment_list",
                 "parameters": [
+                    {
+                        "description": "Pagina (\u003E=1). Default=1",
+                        "name": "page",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Itens por pagina [1..100]. Default=50",
+                        "name": "per_page",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Busca por titulo/subject_other (max 100 chars)",
+                        "name": "q",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Filtra por turma",
+                        "name": "class_id",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Filtra por professor (admin only; teacher fica restrito ao proprio id)",
+                        "name": "teacher_id",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Filtra por disciplina",
+                        "name": "subject_kind",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Filtra por modo de peso",
+                        "name": "weight_mode",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Data inicial YYYY-MM-DD",
+                        "name": "date_from",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Data final YYYY-MM-DD",
+                        "name": "date_to",
+                        "type": "string",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Campos: id,title,date,class_id,subject_kind,weight_mode,created_at. Prefixe '-' para DESC.",
+                        "name": "sort",
+                        "type": "string",
+                        "in": "query"
+                    },
                     {
                         "name": "X-Fields",
                         "in": "header",
@@ -91,24 +148,6 @@
                     "type": "integer"
                 }
             ],
-            "delete": {
-                "responses": {
-                    "422": {
-                        "description": "Validação"
-                    },
-                    "404": {
-                        "description": "Não encontrado"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    }
-                },
-                "operationId": "delete_assessment_detail",
-                "tags": ["assessments"]
-            },
             "put": {
                 "responses": {
                     "200": {
@@ -181,6 +220,24 @@
                         "description": "An optional fields mask"
                     }
                 ],
+                "tags": ["assessments"]
+            },
+            "delete": {
+                "responses": {
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "delete_assessment_detail",
                 "tags": ["assessments"]
             }
         },
@@ -537,15 +594,6 @@
                     "type": "integer"
                 }
             ],
-            "delete": {
-                "responses": {
-                    "200": {
-                        "description": "Success"
-                    }
-                },
-                "operationId": "delete_class_detail",
-                "tags": ["classes"]
-            },
             "put": {
                 "responses": {
                     "200": {
@@ -594,6 +642,15 @@
                         "description": "An optional fields mask"
                     }
                 ],
+                "tags": ["classes"]
+            },
+            "delete": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "operationId": "delete_class_detail",
                 "tags": ["classes"]
             }
         },
@@ -719,15 +776,6 @@
                     "type": "integer"
                 }
             ],
-            "delete": {
-                "responses": {
-                    "204": {
-                        "description": "Removido"
-                    }
-                },
-                "operationId": "delete_descriptor_detail",
-                "tags": ["descriptors"]
-            },
             "put": {
                 "responses": {
                     "200": {
@@ -776,6 +824,15 @@
                         "description": "An optional fields mask"
                     }
                 ],
+                "tags": ["descriptors"]
+            },
+            "delete": {
+                "responses": {
+                    "204": {
+                        "description": "Removido"
+                    }
+                },
+                "operationId": "delete_descriptor_detail",
                 "tags": ["descriptors"]
             }
         },
@@ -1004,27 +1061,6 @@
                     "type": "integer"
                 }
             ],
-            "delete": {
-                "responses": {
-                    "409": {
-                        "description": "Estrutura da avaliacao bloqueada por respostas"
-                    },
-                    "404": {
-                        "description": "Não encontrada"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    },
-                    "204": {
-                        "description": "Removida"
-                    }
-                },
-                "operationId": "delete_question_detail",
-                "tags": ["questions"]
-            },
             "put": {
                 "responses": {
                     "200": {
@@ -1094,6 +1130,27 @@
                         "description": "An optional fields mask"
                     }
                 ],
+                "tags": ["questions"]
+            },
+            "delete": {
+                "responses": {
+                    "409": {
+                        "description": "Estrutura da avaliacao bloqueada por respostas"
+                    },
+                    "404": {
+                        "description": "Não encontrada"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    },
+                    "204": {
+                        "description": "Removida"
+                    }
+                },
+                "operationId": "delete_question_detail",
                 "tags": ["questions"]
             }
         },
@@ -1277,24 +1334,6 @@
                     "type": "integer"
                 }
             ],
-            "delete": {
-                "responses": {
-                    "404": {
-                        "description": "Não encontrado"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    },
-                    "204": {
-                        "description": "Removido"
-                    }
-                },
-                "operationId": "delete_student_answer_detail",
-                "tags": ["student-answers"]
-            },
             "put": {
                 "responses": {
                     "200": {
@@ -1364,6 +1403,24 @@
                         "description": "An optional fields mask"
                     }
                 ],
+                "tags": ["student-answers"]
+            },
+            "delete": {
+                "responses": {
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    },
+                    "204": {
+                        "description": "Removido"
+                    }
+                },
+                "operationId": "delete_student_answer_detail",
                 "tags": ["student-answers"]
             }
         },
@@ -1508,24 +1565,6 @@
                     "type": "integer"
                 }
             ],
-            "delete": {
-                "responses": {
-                    "422": {
-                        "description": "Validação"
-                    },
-                    "404": {
-                        "description": "Não encontrado"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    }
-                },
-                "operationId": "delete_student_detail",
-                "tags": ["students"]
-            },
             "put": {
                 "responses": {
                     "200": {
@@ -1592,6 +1631,24 @@
                         "description": "An optional fields mask"
                     }
                 ],
+                "tags": ["students"]
+            },
+            "delete": {
+                "responses": {
+                    "422": {
+                        "description": "Validação"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "operationId": "delete_student_detail",
                 "tags": ["students"]
             }
         },
@@ -1753,24 +1810,6 @@
                     "type": "integer"
                 }
             ],
-            "delete": {
-                "responses": {
-                    "404": {
-                        "description": "Não encontrado"
-                    },
-                    "403": {
-                        "description": "Proibido"
-                    },
-                    "401": {
-                        "description": "Não autenticado"
-                    },
-                    "204": {
-                        "description": "Removido"
-                    }
-                },
-                "operationId": "delete_teacher_detail",
-                "tags": ["teachers"]
-            },
             "put": {
                 "responses": {
                     "200": {
@@ -1841,6 +1880,24 @@
                         "description": "An optional fields mask"
                     }
                 ],
+                "tags": ["teachers"]
+            },
+            "delete": {
+                "responses": {
+                    "404": {
+                        "description": "Não encontrado"
+                    },
+                    "403": {
+                        "description": "Proibido"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    },
+                    "204": {
+                        "description": "Removido"
+                    }
+                },
+                "operationId": "delete_teacher_detail",
                 "tags": ["teachers"]
             }
         }
@@ -2178,13 +2235,12 @@
             "type": "object"
         },
         "AssessmentCreate": {
+            "required": ["class_id", "date", "title"],
             "properties": {
-                "id": {
-                    "type": "integer",
-                    "readOnly": true
-                },
                 "title": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
                 },
                 "date": {
                     "type": "string",
@@ -2194,15 +2250,18 @@
                 "weight_mode": {
                     "type": "string",
                     "description": "• **fixed_all** – mesmo peso para todas as questões\n• **by_skill** – peso por categoria (SkillLevel)\n• **per_question** – peso arbitrário por questão",
+                    "default": "fixed_all",
                     "example": "fixed_all",
                     "enum": ["fixed_all", "by_skill", "per_question"]
                 },
                 "class_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "subject_kind": {
                     "type": "string",
-                    "description": "Disciplina da avaliação. Use 'outro' com 'subject_other'.",
+                    "description": "Disciplina da avaliacao. Use 'outro' com 'subject_other'.",
+                    "default": "geral",
                     "example": "portugues",
                     "enum": [
                         "portugues",
@@ -2221,7 +2280,8 @@
                 },
                 "subject_other": {
                     "type": "string",
-                    "description": "Obrigatório quando subject_kind='outro'"
+                    "description": "Obrigatorio quando subject_kind='outro'; omitido nos demais casos.",
+                    "maxLength": 80
                 }
             },
             "type": "object"
@@ -2232,7 +2292,8 @@
                     "type": "integer"
                 },
                 "title": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 160
                 },
                 "date": {
                     "type": "string",
@@ -2269,39 +2330,88 @@
                 },
                 "subject_other": {
                     "type": "string",
-                    "description": "Obrigatório quando subject_kind='outro'"
+                    "description": "Obrigatorio quando subject_kind='outro'",
+                    "maxLength": 80
+                }
+            },
+            "type": "object"
+        },
+        "AssessmentList": {
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/AssessmentOut"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
+                },
+                "has_next": {
+                    "type": "boolean"
+                },
+                "has_prev": {
+                    "type": "boolean"
                 }
             },
             "type": "object"
         },
         "AssessmentUpdate": {
-            "allOf": [
-                {
-                    "$ref": "#/definitions/AssessmentOut"
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
                 },
-                {
-                    "properties": {
-                        "title": {
-                            "type": "string"
-                        },
-                        "date": {
-                            "type": "string",
-                            "format": "date",
-                            "description": "YYYY-MM-DD"
-                        },
-                        "weight_mode": {
-                            "type": "string",
-                            "description": "• **fixed_all** – mesmo peso para todas as questões\n• **by_skill** – peso por categoria (SkillLevel)\n• **per_question** – peso arbitrário por questão",
-                            "example": "fixed_all",
-                            "enum": ["fixed_all", "by_skill", "per_question"]
-                        },
-                        "class_id": {
-                            "type": "integer"
-                        }
-                    },
-                    "type": "object"
+                "date": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "YYYY-MM-DD"
+                },
+                "weight_mode": {
+                    "type": "string",
+                    "description": "• **fixed_all** – mesmo peso para todas as questões\n• **by_skill** – peso por categoria (SkillLevel)\n• **per_question** – peso arbitrário por questão",
+                    "example": "fixed_all",
+                    "enum": ["fixed_all", "by_skill", "per_question"]
+                },
+                "class_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "subject_kind": {
+                    "type": "string",
+                    "example": "portugues",
+                    "enum": [
+                        "portugues",
+                        "matematica",
+                        "ciencias",
+                        "historia",
+                        "geografia",
+                        "ingles",
+                        "artes",
+                        "educacao_fisica",
+                        "tecnologia",
+                        "redacao",
+                        "geral",
+                        "outro"
+                    ]
+                },
+                "subject_other": {
+                    "type": "string",
+                    "description": "Obrigatorio quando subject_kind='outro'; omitido nos demais casos.",
+                    "maxLength": 80
                 }
-            ]
+            },
+            "type": "object"
         },
         "AssessmentSkillWeightsIn": {
             "required": ["items"],
@@ -2325,7 +2435,7 @@
                 },
                 "weight": {
                     "type": "number",
-                    "description": "Peso \u003E 0"
+                    "description": "Peso \u003E 0 e \u003C= 1000"
                 }
             },
             "type": "object"

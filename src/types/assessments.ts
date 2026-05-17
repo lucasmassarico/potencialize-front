@@ -29,13 +29,36 @@ export interface AssessmentOut {
     subject_other?: string | null | undefined; // novo
 }
 
+export interface AssessmentList {
+    items: AssessmentOut[];
+    page: number;
+    per_page: number;
+    total: number;
+    total_pages: number;
+    has_next: boolean;
+    has_prev: boolean;
+}
+
+export interface ListAssessmentsParams {
+    page?: number;
+    per_page?: number;
+    q?: string;
+    class_id?: number;
+    teacher_id?: number;
+    subject_kind?: SubjectKind;
+    weight_mode?: WeightMode;
+    date_from?: string;
+    date_to?: string;
+    sort?: string;
+}
+
 export interface AssessmentCreate {
     title: string;
     date: string; // "YYYY-MM-DD"
     weight_mode: WeightMode;
     class_id: number;
     subject_kind: SubjectKind; // novo
-    subject_other?: string | null | undefined; // novo (obrigatório se subject_kind='outro')
+    subject_other?: string; // novo (obrigatório se subject_kind='outro')
 }
 
 export type AssessmentUpdate = Partial<AssessmentCreate>;

@@ -2,7 +2,6 @@ import * as React from "react";
 import {
     Box,
     Button,
-    Checkbox,
     Chip,
     Divider,
     IconButton,
@@ -30,7 +29,6 @@ interface Props {
     clearFilters: () => void;
     hasActiveFilters: boolean;
     classes: ClassOut[];
-    perClassCount: Map<number, number>;
     totalShown: number;
 }
 
@@ -93,35 +91,25 @@ function FilterButton({ label, activeCount, children }: FilterButtonProps) {
 interface CheckOption<T extends string | number> {
     value: T;
     label: string;
-    count?: number;
 }
 
-function CheckList<T extends string | number>({
+function SingleOptionList<T extends string | number>({
     options,
     selected,
-    onToggle,
+    onSelect,
 }: {
     options: CheckOption<T>[];
-    selected: T[];
-    onToggle: (next: T[]) => void;
+    selected?: T;
+    onSelect: (next: T | undefined) => void;
 }) {
-    const toggle = (v: T) => {
-        if (selected.includes(v)) onToggle(selected.filter((x) => x !== v));
-        else onToggle([...selected, v]);
-    };
     return (
         <>
             {options.map((o) => {
-                const checked = selected.includes(o.value);
+                const checked = selected === o.value;
                 return (
-                    <MenuItem key={String(o.value)} onClick={() => toggle(o.value)} sx={{ py: 0.75, px: 1.5 }}>
-                        <Checkbox size="small" edge="start" checked={checked} disableRipple sx={{ p: 0.5 }} />
+                    <MenuItem key={String(o.value)} onClick={() => onSelect(checked ? undefined : o.value)} sx={{ py: 0.75, px: 1.5 }}>
+                        <Radio size="small" edge="start" checked={checked} disableRipple sx={{ p: 0.5 }} />
                         <ListItemText primary={o.label} primaryTypographyProps={{ fontSize: 14 }} />
-                        {o.count !== undefined && (
-                            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                                {o.count}
-                            </Typography>
-                        )}
                     </MenuItem>
                 );
             })}
@@ -137,23 +125,23 @@ const PERIOD_OPTIONS: { value: PeriodPreset; label: string }[] = [
     { value: "last_month", label: "Mês passado" },
 ];
 
-export function AssessmentsToolbar({ filters, setFilters, clearFilters, hasActiveFilters, classes, perClassCount, totalShown }: Props) {
+export function AssessmentsToolbar({ filters, setFilters, clearFilters, hasActiveFilters, classes, totalShown }: Props) {
     const classOptions: CheckOption<number>[] = React.useMemo(
         () =>
             classes
                 .map((c) => ({
                     value: c.id,
                     label: c.year ? `${c.name} · ${c.year}` : c.name,
-                    count: perClassCount.get(c.id) ?? 0,
                 }))
                 .sort((a, b) => a.label.localeCompare(b.label, "pt-BR")),
-        [classes, perClassCount],
+        [classes],
     );
 
     const subjectOptions: CheckOption<SubjectKind>[] = SUBJECT_ORDER.map((s) => ({ value: s, label: subjectLabel(s) }));
     const modeOptions: CheckOption<WeightMode>[] = WEIGHT_ORDER.map((m) => ({ value: m, label: weightLabel(m) }));
     const periodLabel = PERIOD_OPTIONS.find((p) => p.value === filters.period)?.label ?? "Período";
     const periodActive = filters.period !== "all" ? 1 : 0;
+    const selectedClassOption = filters.classId ? classOptions.find((o) => o.value === filters.classId) : undefined;
 
     return (
         <Stack spacing={1.5}>
@@ -180,16 +168,43 @@ export function AssessmentsToolbar({ filters, setFilters, clearFilters, hasActiv
             />
 
             <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
-                <FilterButton label="Turma" activeCount={filters.classIds.length}>
-                    {() => <CheckList options={classOptions} selected={filters.classIds} onToggle={(next) => setFilters({ classIds: next })} />}
+                <FilterButton label="Turma" activeCount={filters.classId ? 1 : 0}>
+                    {(close) => (
+                        <SingleOptionList
+                            options={classOptions}
+                            selected={filters.classId}
+                            onSelect={(next) => {
+                                setFilters({ classId: next });
+                                close();
+                            }}
+                        />
+                    )}
                 </FilterButton>
 
-                <FilterButton label="Disciplina" activeCount={filters.subjects.length}>
-                    {() => <CheckList options={subjectOptions} selected={filters.subjects} onToggle={(next) => setFilters({ subjects: next })} />}
+                <FilterButton label="Disciplina" activeCount={filters.subject ? 1 : 0}>
+                    {(close) => (
+                        <SingleOptionList
+                            options={subjectOptions}
+                            selected={filters.subject}
+                            onSelect={(next) => {
+                                setFilters({ subject: next });
+                                close();
+                            }}
+                        />
+                    )}
                 </FilterButton>
 
-                <FilterButton label="Modo" activeCount={filters.modes.length}>
-                    {() => <CheckList options={modeOptions} selected={filters.modes} onToggle={(next) => setFilters({ modes: next })} />}
+                <FilterButton label="Modo" activeCount={filters.mode ? 1 : 0}>
+                    {(close) => (
+                        <SingleOptionList
+                            options={modeOptions}
+                            selected={filters.mode}
+                            onSelect={(next) => {
+                                setFilters({ mode: next });
+                                close();
+                            }}
+                        />
+                    )}
                 </FilterButton>
 
                 <FilterButton label={periodActive ? periodLabel : "Período"} activeCount={periodActive}>
@@ -238,39 +253,36 @@ export function AssessmentsToolbar({ filters, setFilters, clearFilters, hasActiv
                             variant="outlined"
                         />
                     )}
-                    {filters.classIds.map((id) => {
-                        const opt = classOptions.find((o) => o.value === id);
-                        return (
-                            <Chip
-                                key={`class-${id}`}
-                                size="small"
-                                label={opt?.label ?? `Turma #${id}`}
-                                onDelete={() => setFilters({ classIds: filters.classIds.filter((x) => x !== id) })}
-                                deleteIcon={<CloseRoundedIcon />}
-                                variant="outlined"
-                            />
-                        );
-                    })}
-                    {filters.subjects.map((s) => (
+                    {filters.classId && (
                         <Chip
-                            key={`subj-${s}`}
+                            key={`class-${filters.classId}`}
                             size="small"
-                            label={subjectLabel(s)}
-                            onDelete={() => setFilters({ subjects: filters.subjects.filter((x) => x !== s) })}
+                            label={selectedClassOption?.label ?? `Turma #${filters.classId}`}
+                            onDelete={() => setFilters({ classId: undefined })}
                             deleteIcon={<CloseRoundedIcon />}
                             variant="outlined"
                         />
-                    ))}
-                    {filters.modes.map((m) => (
+                    )}
+                    {filters.subject && (
                         <Chip
-                            key={`mode-${m}`}
+                            key={`subj-${filters.subject}`}
                             size="small"
-                            label={weightLabel(m)}
-                            onDelete={() => setFilters({ modes: filters.modes.filter((x) => x !== m) })}
+                            label={subjectLabel(filters.subject)}
+                            onDelete={() => setFilters({ subject: undefined })}
                             deleteIcon={<CloseRoundedIcon />}
                             variant="outlined"
                         />
-                    ))}
+                    )}
+                    {filters.mode && (
+                        <Chip
+                            key={`mode-${filters.mode}`}
+                            size="small"
+                            label={weightLabel(filters.mode)}
+                            onDelete={() => setFilters({ mode: undefined })}
+                            deleteIcon={<CloseRoundedIcon />}
+                            variant="outlined"
+                        />
+                    )}
                     {filters.period !== "all" && (
                         <Chip
                             size="small"

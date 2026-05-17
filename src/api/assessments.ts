@@ -1,7 +1,9 @@
 //src/api/assessments.ts
 import api from "./http";
+import { normalizeAssessmentListResponse } from "./assessmentListResponse";
 import type {
     AssessmentOut,
+    ListAssessmentsParams,
     AssessmentCreate,
     AssessmentUpdate,
     AssessmentMatrixDTO,
@@ -12,13 +14,19 @@ import type {
     AssessmentGradingPolicyOut,
 } from "../types/assessments";
 
-export async function listAssessments(xFields?: string) {
+interface ListAssessmentsOptions {
+    params?: ListAssessmentsParams;
+    xFields?: string;
+}
+
+export async function listAssessments(options: ListAssessmentsOptions = {}) {
     const headers: Record<string, string> = {};
-    if (xFields) headers["X-Fields"] = xFields;
-    const { data } = await api.get<AssessmentOut[]>("/assessments/", {
+    if (options.xFields) headers["X-Fields"] = options.xFields;
+    const { data } = await api.get<unknown>("/assessments/", {
         headers,
+        params: options.params,
     });
-    return data;
+    return normalizeAssessmentListResponse(data);
 }
 
 export async function getAssessment(id: number, xFields?: string) {
