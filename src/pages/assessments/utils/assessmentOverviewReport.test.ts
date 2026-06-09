@@ -21,6 +21,7 @@ const baseOverview: AssessmentOverviewDTO = {
     overall: {
         total_questions: 2,
         total_answers: 48,
+        expected_answers: 48,
         correct: 30,
         accuracy: 0.625,
     },
@@ -29,6 +30,7 @@ const baseOverview: AssessmentOverviewDTO = {
             skill_level: "adequado",
             questions: 1,
             answers: 24,
+            expected_answers: 24,
             correct: 18,
             accuracy: 0.75,
             students_answered: 24,
@@ -37,6 +39,7 @@ const baseOverview: AssessmentOverviewDTO = {
             skill_level: "abaixo",
             questions: 1,
             answers: 24,
+            expected_answers: 24,
             correct: 12,
             accuracy: 0.5,
             students_answered: 24,
@@ -55,9 +58,10 @@ const baseOverview: AssessmentOverviewDTO = {
             weight: 1,
             correct_option: "c",
             answers: 24,
+            expected_answers: 24,
             correct: 18,
             accuracy: 0.75,
-            option_distribution: { a: 1, b: 2, c: 18, d: 2, e: 0, blank: 7 },
+            option_distribution: { a: 1, b: 2, c: 18, d: 2, e: 0, blank: 1 },
         },
         {
             question_id: 101,
@@ -71,9 +75,10 @@ const baseOverview: AssessmentOverviewDTO = {
             weight: 1,
             correct_option: "a",
             answers: 24,
+            expected_answers: 24,
             correct: 12,
             accuracy: 0.5,
-            option_distribution: { a: 12, b: 6, c: 3, d: 2, e: 1, blank: 6 },
+            option_distribution: { a: 12, b: 6, c: 3, d: 2, e: 1, blank: 0 },
         },
     ],
     hardest: [
@@ -86,6 +91,7 @@ const baseOverview: AssessmentOverviewDTO = {
             descriptor_code: null,
             accuracy: 0.5,
             answers: 24,
+            expected_answers: 24,
         },
     ],
     easiest: [
@@ -98,6 +104,7 @@ const baseOverview: AssessmentOverviewDTO = {
             descriptor_code: "D10",
             accuracy: 0.75,
             answers: 24,
+            expected_answers: 24,
         },
     ],
     hardest_criteria: {
@@ -151,10 +158,10 @@ describe("assessment overview report mapper", () => {
         expect(report.subjectLabel).toBe("Matemática");
         expect(report.dateLabel).toBe("10/05/2026");
         expect(report.summary).toEqual([
-            { label: "Taxa de acerto", value: "62.5%", detail: "30 de 48 respostas" },
+            { label: "Taxa de acerto", value: "62.5%", detail: "30 corretas de 48 esperadas" },
             { label: "Participação", value: "80.0%", detail: "24 de 30 alunos responderam" },
             { label: "Questões", value: "2", detail: "Total de questões da prova" },
-            { label: "Questão crítica", value: "Questão 1", detail: "50.0% de acerto - 24 respostas" },
+            { label: "Questão crítica", value: "Questão 1", detail: "50.0% de acerto - 24 esperadas" },
         ]);
     });
 
@@ -180,21 +187,21 @@ describe("assessment overview report mapper", () => {
     });
 
     it("formats distribution with the correct option marked and all alternatives listed", () => {
-        expect(formatDistribution(baseOverview.by_question[0])).toBe("A: 1 | B: 2 | C*: 18 | D: 2 | E: 0 | Branco: 7");
+        expect(formatDistribution(baseOverview.by_question[0])).toBe("A: 1 | B: 2 | C*: 18 | D: 2 | E: 0 | Branco: 1");
     });
 
     it("keeps distribution values structured for PDF charts", () => {
         const report = buildAssessmentOverviewReport(baseOverview);
 
         expect(report.questions[1].descriptorLabel).toBe("D10 - Grandezas e medidas");
-        expect(report.questions[1].distributionTotal).toBe(30);
+        expect(report.questions[1].distributionTotal).toBe(24);
         expect(report.questions[1].distributionValues).toEqual([
             { option: "A", count: 1, isCorrect: false },
             { option: "B", count: 2, isCorrect: false },
             { option: "C", count: 18, isCorrect: true },
             { option: "D", count: 2, isCorrect: false },
             { option: "E", count: 0, isCorrect: false },
-            { option: "Branco", count: 7, isCorrect: false },
+            { option: "Branco", count: 1, isCorrect: false },
         ]);
     });
 

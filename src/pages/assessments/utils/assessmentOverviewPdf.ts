@@ -202,9 +202,9 @@ const drawSkillsChart = (doc: jsPDF, report: AssessmentOverviewReport, y: number
     const chartHeight = topPadding + report.skills.length * rowHeight + axisHeight;
     const labelWidth = 50;
     const valueWidth = 24;
-    const metaWidth = 36;
+    const rightLabelReserve = 44;
     const barX = x + labelWidth;
-    const barWidth = width - labelWidth - valueWidth - metaWidth - 8;
+    const barWidth = width - labelWidth - valueWidth - rightLabelReserve;
     const gridY = currentY + 6;
     const gridHeight = report.skills.length * rowHeight;
 
@@ -215,7 +215,6 @@ const drawSkillsChart = (doc: jsPDF, report: AssessmentOverviewReport, y: number
 
     drawColumnHeader(doc, "Nível", x + 4, currentY + 5);
     drawColumnHeader(doc, "Taxa de acerto", barX, currentY + 5);
-    drawColumnHeader(doc, "Respostas", barX + barWidth + valueWidth + 4, currentY + 5);
 
     report.skills.forEach((skill, index) => {
         const rowY = currentY + topPadding + index * rowHeight;
@@ -244,7 +243,6 @@ const drawSkillsChart = (doc: jsPDF, report: AssessmentOverviewReport, y: number
         setTextColor(doc, COLORS.muted);
         doc.setFont("helvetica", "normal");
         doc.setFontSize(6.6);
-        doc.text(`${skill.correct}/${skill.answers}`, barX + barWidth + valueWidth + 4, rowY + 5.4);
         doc.text(`${skill.questions} questões`, x + width - 4, rowY + 5.4, { align: "right" });
     });
 
@@ -311,11 +309,6 @@ const drawRankingItem = (
     doc.setFont("helvetica", "bold");
     doc.setFontSize(6.6);
     doc.text(item.accuracyLabel, barX + barWidth + 3, y + 8.7);
-
-    setTextColor(doc, COLORS.muted);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.2);
-    doc.text(`${item.answers} respostas`, barX, y + 17);
 
     return y + rowHeight + 2;
 };

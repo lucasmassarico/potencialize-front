@@ -51,6 +51,7 @@ export interface ReportSkillRow {
     level: string;
     questions: number;
     answers: number;
+    expectedAnswers: number;
     correct: number;
     accuracyLabel: string;
     accuracyValue: number;
@@ -69,6 +70,7 @@ export interface ReportQuestionRow {
     weight: number;
     correctOption: string;
     answers: number;
+    expectedAnswers: number;
     correct: number;
     accuracyLabel: string;
     accuracyValue: number;
@@ -94,6 +96,7 @@ export interface ReportRankingRow {
     accuracyLabel: string;
     accuracyValue: number;
     answers: number;
+    expectedAnswers: number;
 }
 
 export interface ReportRankingSection {
@@ -190,7 +193,7 @@ const rankBasisLabel = (basis: string): string => {
 
 export const formatRankCriteria = (criteria: OverviewRankCriteria | undefined): string => {
     if (!criteria) return "";
-    return `Top ${criteria.top_n ?? 3} por ${rankBasisLabel(criteria.basis)}; mínimo de ${criteria.min_answers ?? 5} respostas.`;
+    return `Top ${criteria.top_n ?? 3} por ${rankBasisLabel(criteria.basis)}; mínimo de ${criteria.min_answers ?? 5} respostas esperadas.`;
 };
 
 export const formatDistribution = (question: OverviewByQuestion): string =>
@@ -239,6 +242,7 @@ const toSkillRows = (overview: AssessmentOverviewDTO): ReportSkillRow[] =>
             level: SKILL_LABELS[skill.skill_level],
             questions: safeNumber(skill.questions),
             answers: safeNumber(skill.answers),
+            expectedAnswers: safeNumber(skill.expected_answers),
             correct: safeNumber(skill.correct),
             accuracyLabel: formatPercent(skill.accuracy),
             accuracyValue: clampRatio(safeNumber(skill.accuracy)),
@@ -264,6 +268,7 @@ const toQuestionRows = (overview: AssessmentOverviewDTO): ReportQuestionRow[] =>
                 weight: safeNumber(question.weight),
                 correctOption: question.correct_option.toUpperCase(),
                 answers: safeNumber(question.answers),
+                expectedAnswers: safeNumber(question.expected_answers),
                 correct: safeNumber(question.correct),
                 accuracyLabel: formatPercent(question.accuracy),
                 accuracyValue: clampRatio(safeNumber(question.accuracy)),
@@ -285,6 +290,7 @@ const toRankingRows = (items: OverviewRankedItem[]): ReportRankingRow[] =>
             accuracyLabel: formatPercent(item.accuracy),
             accuracyValue: clampRatio(safeNumber(item.accuracy)),
             answers: safeNumber(item.answers),
+            expectedAnswers: safeNumber(item.expected_answers),
         }));
 
 const toStudentRows = (
@@ -342,6 +348,7 @@ export const buildAssessmentOverviewReport = (
 ): AssessmentOverviewReport => {
     const totalQuestions = safeNumber(overview.overall.total_questions);
     const totalAnswers = safeNumber(overview.overall.total_answers);
+    const expectedAnswers = safeNumber(overview.overall.expected_answers) || totalAnswers;
     const totalStudents = safeNumber(overview.population.students_in_class);
     const studentsAnswered = safeNumber(overview.population.students_answered_any);
     const correct = safeNumber(overview.overall.correct);
@@ -359,7 +366,7 @@ export const buildAssessmentOverviewReport = (
             {
                 label: "Taxa de acerto",
                 value: formatPercent(overview.overall.accuracy),
-                detail: `${correct} de ${totalAnswers} respostas`,
+                detail: `${correct} corretas de ${expectedAnswers} esperadas`,
             },
             {
                 label: "Participação",
@@ -375,7 +382,7 @@ export const buildAssessmentOverviewReport = (
                 label: "Questão crítica",
                 value: hardestTop ? questionNumberLabel(hardestTop) : "-",
                 detail: hardestTop
-                    ? `${formatPercent(hardestTop.accuracy)} de acerto - ${safeNumber(hardestTop.answers)} respostas`
+                    ? `${formatPercent(hardestTop.accuracy)} de acerto - ${safeNumber(hardestTop.expected_answers) || safeNumber(hardestTop.answers)} esperadas`
                     : "Sem dados suficientes",
             },
         ],

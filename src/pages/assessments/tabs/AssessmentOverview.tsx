@@ -114,7 +114,7 @@ const buildRankCriteriaText = (criteria: OverviewRankCriteria | undefined): stri
     if (!criteria) return "";
     const top = criteria.top_n ?? 3;
     const min = criteria.min_answers ?? 5;
-    return `Top ${top} questões pelo critério "${formatRankBasis(criteria.basis)}". Considera apenas questões com no mínimo ${min} respostas.`;
+    return `Top ${top} questões pelo critério "${formatRankBasis(criteria.basis)}". Considera apenas questões com no mínimo ${min} respostas esperadas.`;
 };
 
 const csvEscape = (value: unknown): string => {
@@ -189,12 +189,16 @@ interface KPICardProps {
     value: string;
     subtitle?: string;
     color?: SemanticColor;
+    tooltip?: string;
 }
 
-function KPICard({ title, value, subtitle, color }: KPICardProps) {
+function KPICard({ title, value, subtitle, color, tooltip }: KPICardProps) {
     const theme = useTheme();
     const accent = color ? theme.palette[color].main : theme.palette.primary.main;
-    return (
+    const accessibleLabel = tooltip
+        ? `${title}: ${value}${subtitle ? `. ${subtitle}` : ""}. ${tooltip}`
+        : undefined;
+    const card = (
         <Card sx={{ height: "100%", borderTop: `3px solid ${accent}` }}>
             <CardContent>
                 <Typography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: 0.6 }}>
@@ -210,6 +214,26 @@ function KPICard({ title, value, subtitle, color }: KPICardProps) {
                 )}
             </CardContent>
         </Card>
+    );
+    if (!tooltip) return card;
+    return (
+        <Tooltip title={tooltip} arrow describeChild>
+            <Box
+                tabIndex={0}
+                aria-label={accessibleLabel}
+                sx={{
+                    height: "100%",
+                    borderRadius: 1,
+                    outline: "none",
+                    "&:focus-visible": {
+                        outline: `2px solid ${accent}`,
+                        outlineOffset: 2,
+                    },
+                }}
+            >
+                {card}
+            </Box>
+        </Tooltip>
     );
 }
 
@@ -279,27 +303,42 @@ function OptionDistributionBar({ dist, correct }: OptionDistributionBarProps) {
 
 function RankedQuestionCard({ item, accent }: { item: OverviewRankedItem; accent: SemanticColor }) {
     const theme = useTheme();
+    const expected = safeNumber(item.expected_answers) || safeNumber(item.answers);
+    const tooltip = `${safeNumber(item.answers)} respostas marcadas de ${expected} esperadas.`;
+    const accessibleLabel = `${questionNumberLabel(item)}. ${item.text_short || "(sem enunciado)"}. ${formatPercent(safeNumber(item.accuracy))} de acerto. ${tooltip}`;
     return (
-        <Paper variant="outlined" sx={{ p: 1.5, borderLeft: `3px solid ${theme.palette[accent].main}` }}>
-            <Stack spacing={1}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} flexWrap="wrap">
-                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                        <Typography variant="body2" fontWeight={700}>
-                            {questionNumberLabel(item)}
-                        </Typography>
-                        <SkillChip level={item.skill_level} />
-                        {item.descriptor_code && <Chip size="small" variant="outlined" label={item.descriptor_code} />}
+        <Tooltip title={tooltip} arrow describeChild>
+            <Paper
+                variant="outlined"
+                tabIndex={0}
+                aria-label={accessibleLabel}
+                sx={{
+                    p: 1.5,
+                    borderLeft: `3px solid ${theme.palette[accent].main}`,
+                    outline: "none",
+                    "&:focus-visible": {
+                        outline: `2px solid ${theme.palette[accent].main}`,
+                        outlineOffset: 2,
+                    },
+                }}
+            >
+                <Stack spacing={1}>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} flexWrap="wrap">
+                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                            <Typography variant="body2" fontWeight={700}>
+                                {questionNumberLabel(item)}
+                            </Typography>
+                            <SkillChip level={item.skill_level} />
+                            {item.descriptor_code && <Chip size="small" variant="outlined" label={item.descriptor_code} />}
+                        </Stack>
                     </Stack>
-                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                        {item.answers} respostas
+                    <Typography variant="body2" sx={{ color: "text.primary" }}>
+                        {item.text_short || "(sem enunciado)"}
                     </Typography>
+                    <AccuracyBar value={safeNumber(item.accuracy)} color={accent} />
                 </Stack>
-                <Typography variant="body2" sx={{ color: "text.primary" }}>
-                    {item.text_short || "(sem enunciado)"}
-                </Typography>
-                <AccuracyBar value={safeNumber(item.accuracy)} color={accent} />
-            </Stack>
-        </Paper>
+            </Paper>
+        </Tooltip>
     );
 }
 
@@ -413,9 +452,11 @@ export default function AssessmentOverview() {
     const studentsTotal = safeNumber(ov.population.students_in_class);
     const accuracy = safeNumber(ov.overall.accuracy);
     const totalAnswers = safeNumber(ov.overall.total_answers);
+    const expectedOverallAnswers = safeNumber(ov.overall.expected_answers) || totalAnswers;
     const totalQuestions = safeNumber(ov.overall.total_questions);
     const correct = safeNumber(ov.overall.correct);
     const hardestTop = ov.hardest[0];
+    const hardestExpectedAnswers = hardestTop ? safeNumber(hardestTop.expected_answers) || safeNumber(hardestTop.answers) : 0;
     const subject = subjectLabel(ov.assessment.subject_kind, ov.assessment.subject_other ?? null);
     const filenameBase = `${slugify(ov.assessment.title || `avaliacao-${ov.assessment.id}`)}-overview`;
 
@@ -430,7 +471,7 @@ export default function AssessmentOverview() {
 
     const handleExportCSV = () => {
         setExportAnchor(null);
-        const header = ["#", "Enunciado", "Nível", "Descritor", "Peso", "Gabarito", "Respondidas", "Corretas", "Acerto (%)", "A", "B", "C", "D", "E", "Branco"];
+        const header = ["#", "Enunciado", "Nível", "Descritor", "Peso", "Gabarito", "Respondidas", "Esperadas", "Corretas", "Acerto (%)", "A", "B", "C", "D", "E", "Branco"];
         const rows = ov.by_question.map((q) => [
             q.display_order ?? q.question_id,
             q.text_short ?? "",
@@ -439,6 +480,7 @@ export default function AssessmentOverview() {
             q.weight,
             q.correct_option.toUpperCase(),
             q.answers,
+            q.expected_answers,
             q.correct,
             (q.accuracy * 100).toFixed(1),
             q.option_distribution.a,
@@ -468,14 +510,16 @@ export default function AssessmentOverview() {
             ["Taxa de acerto geral", `${(accuracy * 100).toFixed(1)}%`],
             ["Participação", `${(participation * 100).toFixed(1)}%`],
             ["Alunos que responderam", `${studentsAnswered}/${studentsTotal}`],
-            ["Questões respondidas", `${totalAnswers}/${totalQuestions}`],
+            ["Questões", totalQuestions],
+            ["Respostas marcadas", totalAnswers],
+            ["Respostas esperadas", expectedOverallAnswers],
             ["Respostas corretas", correct],
         ];
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), "Resumo");
 
         const skillSheet = [
-            ["Nível", "Questões", "Respondidas", "Corretas", "Acerto (%)", "Alunos que responderam"],
-            ...skillsSorted.map((s) => [SKILL_LABELS[s.skill_level], s.questions, s.answers, s.correct, (s.accuracy * 100).toFixed(1), s.students_answered]),
+            ["Nível", "Questões", "Respondidas", "Esperadas", "Corretas", "Acerto (%)", "Alunos que responderam"],
+            ...skillsSorted.map((s) => [SKILL_LABELS[s.skill_level], s.questions, s.answers, s.expected_answers, s.correct, (s.accuracy * 100).toFixed(1), s.students_answered]),
         ];
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(skillSheet), "Por nível");
 
@@ -489,6 +533,7 @@ export default function AssessmentOverview() {
                 "Peso",
                 "Gabarito",
                 "Respondidas",
+                "Esperadas",
                 "Corretas",
                 "Acerto (%)",
                 "A",
@@ -507,6 +552,7 @@ export default function AssessmentOverview() {
                 q.weight,
                 q.correct_option.toUpperCase(),
                 q.answers,
+                q.expected_answers,
                 q.correct,
                 (q.accuracy * 100).toFixed(1),
                 q.option_distribution.a,
@@ -519,7 +565,7 @@ export default function AssessmentOverview() {
         ];
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(questionsSheet), "Por questão");
 
-        const rankedHeader = ["#", "Enunciado", "Nível", "Descritor", "Acerto (%)", "Respondidas"];
+        const rankedHeader = ["#", "Enunciado", "Nível", "Descritor", "Acerto (%)", "Respondidas", "Esperadas"];
         const toRankedRow = (q: OverviewRankedItem) => [
             q.display_order ?? q.question_id,
             q.text_short ?? "",
@@ -527,6 +573,7 @@ export default function AssessmentOverview() {
             q.descriptor_code ?? "",
             (q.accuracy * 100).toFixed(1),
             q.answers,
+            q.expected_answers,
         ];
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([rankedHeader, ...ov.hardest.map(toRankedRow)]), "Mais difíceis");
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([rankedHeader, ...ov.easiest.map(toRankedRow)]), "Mais fáceis");
@@ -563,7 +610,7 @@ export default function AssessmentOverview() {
                     <KPICard
                         title="Taxa de acerto"
                         value={formatPercent(accuracy)}
-                        subtitle={`${correct} de ${totalAnswers} respostas`}
+                        tooltip={`${correct} corretas de ${expectedOverallAnswers} esperadas; ${totalAnswers} respostas marcadas.`}
                         color={accuracy >= 0.7 ? "success" : accuracy >= 0.5 ? "info" : accuracy >= 0.3 ? "warning" : "error"}
                     />
                 </Grid>
@@ -582,7 +629,8 @@ export default function AssessmentOverview() {
                     <KPICard
                         title="Questão crítica"
                         value={hardestTop ? questionNumberLabel(hardestTop) : "—"}
-                        subtitle={hardestTop ? `${formatPercent(hardestTop.accuracy)} de acerto · ${hardestTop.answers} respostas` : "Sem dados suficientes"}
+                        subtitle={hardestTop ? `${formatPercent(hardestTop.accuracy)} de acerto` : "Sem dados suficientes"}
+                        tooltip={hardestTop ? `${hardestTop.answers} respostas marcadas de ${hardestExpectedAnswers} esperadas.` : undefined}
                         color="error"
                     />
                 </Grid>
@@ -670,21 +718,6 @@ export default function AssessmentOverview() {
                                     margin={{ left: 24, right: 20, top: 8, bottom: 24 }}
                                 />
                             )}
-                            <Stack spacing={1} sx={{ mt: 1.5 }}>
-                                {skillsSorted.map((s) => (
-                                    <Stack key={s.skill_level} direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
-                                        <Box sx={{ minWidth: 50 }}>
-                                            <SkillChip level={s.skill_level} />
-                                        </Box>
-                                        <Typography variant="caption" sx={{ color: "text.secondary", minWidth: 140 }}>
-                                            {s.correct}/{s.answers} corretas
-                                        </Typography>
-                                        <Typography variant="caption" sx={{ color: "text.secondary", minWidth: 110 }}>
-                                            {s.students_answered} alunos
-                                        </Typography>
-                                    </Stack>
-                                ))}
-                            </Stack>
                         </CardContent>
                     </Card>
                 </Grid>
@@ -700,11 +733,11 @@ export default function AssessmentOverview() {
                                         Questões com pior desempenho
                                     </Typography>
                                 </Tooltip>
-                                <Chip size="small" variant="outlined" label={`mín. ${ov.hardest_criteria?.min_answers ?? 5} respostas`} />
+                                <Chip size="small" variant="outlined" label={`mín. ${ov.hardest_criteria?.min_answers ?? 5} esperadas`} />
                             </Stack>
                             {ov.hardest.length === 0 ? (
                                 <Alert severity="info">
-                                    Ainda não há questões ranqueadas. Aguarde mais respostas (mínimo {ov.hardest_criteria?.min_answers ?? 5} por questão).
+                                    Ainda não há questões ranqueadas. Aguarde mais respostas esperadas (mínimo {ov.hardest_criteria?.min_answers ?? 5} por questão).
                                 </Alert>
                             ) : (
                                 <Stack spacing={1}>
@@ -725,11 +758,11 @@ export default function AssessmentOverview() {
                                         Questões com melhor desempenho
                                     </Typography>
                                 </Tooltip>
-                                <Chip size="small" variant="outlined" label={`mín. ${ov.easiest_criteria?.min_answers ?? 5} respostas`} />
+                                <Chip size="small" variant="outlined" label={`mín. ${ov.easiest_criteria?.min_answers ?? 5} esperadas`} />
                             </Stack>
                             {ov.easiest.length === 0 ? (
                                 <Alert severity="info">
-                                    Ainda não há questões ranqueadas. Aguarde mais respostas (mínimo {ov.easiest_criteria?.min_answers ?? 5} por questão).
+                                    Ainda não há questões ranqueadas. Aguarde mais respostas esperadas (mínimo {ov.easiest_criteria?.min_answers ?? 5} por questão).
                                 </Alert>
                             ) : (
                                 <Stack spacing={1}>
