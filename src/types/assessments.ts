@@ -86,6 +86,7 @@ export interface OverviewByQuestion {
     weight: number;
     correct_option: Option;
     answers: number;
+    expected_answers: number;
     correct: number;
     accuracy: number; // 0..1
     option_distribution: OverviewOptionDistribution;
@@ -100,6 +101,7 @@ export interface OverviewRankedItem {
     descriptor_code?: string | null;
     accuracy: number;
     answers: number;
+    expected_answers: number;
 }
 
 export interface OverviewRankCriteria {
@@ -112,6 +114,7 @@ export interface OverviewBySkill {
     skill_level: SkillLevel;
     questions: number;
     answers: number;
+    expected_answers: number;
     correct: number;
     accuracy: number;
     students_answered: number;
@@ -138,6 +141,7 @@ export interface AssessmentOverviewDTO {
     overall: {
         total_questions: number;
         total_answers: number;
+        expected_answers: number;
         correct: number;
         accuracy: number; // 0..1
     };
