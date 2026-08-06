@@ -1,5 +1,6 @@
-import type { Option, QuestionCreate, SkillLevel } from "../../types/questions";
+import type { BulkQuestionCreate, Option, SkillLevel } from "../../types/questions";
 import type { DescriptorOut } from "../../types/descriptors";
+import type { WeightMode as AssessmentWeightMode } from "../../types/assessments";
 import { parseSkillLevel } from "../skillLevels";
 
 export interface BulkRowDraft {
@@ -18,7 +19,9 @@ export interface BulkRowError {
     message: string;
 }
 
-export type WeightMode = "per_question" | "by_skill" | string | undefined;
+export type WeightMode = AssessmentWeightMode | undefined;
+
+export const MAX_BULK_QUESTIONS = 500;
 
 export const FRIENDLY_HEADERS = {
     display_order: "Número da questão",
@@ -101,9 +104,21 @@ function parseDisplayOrder(raw: unknown): number | null {
     return Number.isInteger(n) && n > 0 ? n : Number.NaN;
 }
 
+function normalizeDescriptorCode(code: string): string {
+    return normalize(code);
+}
+
 function buildDescriptorCodeIndex(descriptors: DescriptorOut[] | undefined) {
-    const map = new Map<string, DescriptorOut>();
-    (descriptors ?? []).forEach((d) => map.set(d.code.toLowerCase().trim(), d));
+    const map = new Map<string, DescriptorOut | null>();
+    (descriptors ?? []).forEach((descriptor) => {
+        const key = normalizeDescriptorCode(descriptor.code);
+        const existing = map.get(key);
+        if (existing && existing.id !== descriptor.id) {
+            map.set(key, null);
+            return;
+        }
+        if (!map.has(key)) map.set(key, descriptor);
+    });
     return map;
 }
 
@@ -133,8 +148,12 @@ function rowToDraft(record: Record<string, unknown>): BulkRowDraft {
                 draft.descriptor_code = value || null;
                 break;
             case "descriptor_id": {
+                if (value === "") {
+                    draft.descriptor_id = null;
+                    break;
+                }
                 const n = Number(value);
-                draft.descriptor_id = Number.isFinite(n) ? n : null;
+                draft.descriptor_id = Number.isInteger(n) && n > 0 ? n : Number.NaN;
                 break;
             }
         }
@@ -242,19 +261,33 @@ export interface ResolveOptions {
 }
 
 export interface ResolveResult {
-    items: QuestionCreate[];
+    items: BulkQuestionCreate[];
     drafts: BulkRowDraft[];
     errors: BulkRowError[];
 }
 
 export function validateAndResolve(
     rawDrafts: BulkRowDraft[],
-    assessmentId: number,
+    _assessmentId: number,
     opts: ResolveOptions,
 ): ResolveResult {
+    if (rawDrafts.length > MAX_BULK_QUESTIONS) {
+        return {
+            items: [],
+            drafts: rawDrafts.map((draft) => ({ ...draft })),
+            errors: [
+                {
+                    row: MAX_BULK_QUESTIONS + 1,
+                    field: "row",
+                    message: `O lote aceita no máximo ${MAX_BULK_QUESTIONS} questões.`,
+                },
+            ],
+        };
+    }
+
     const codeIndex = buildDescriptorCodeIndex(opts.descriptors);
     const errors: BulkRowError[] = [];
-    const items: QuestionCreate[] = [];
+    const items: BulkQuestionCreate[] = [];
     const drafts: BulkRowDraft[] = [];
 
     const isPerQuestion = opts.weightMode === "per_question";
@@ -263,6 +296,7 @@ export function validateAndResolve(
     rawDrafts.forEach((draft, idx) => {
         const row = idx + 1;
         const resolved: BulkRowDraft = { ...draft };
+        const errorCountBeforeRow = errors.length;
 
         if (resolved.display_order !== null && (!Number.isInteger(resolved.display_order) || resolved.display_order <= 0)) {
             errors.push({
@@ -299,16 +333,37 @@ export function validateAndResolve(
         if (isPerQuestion) {
             if (resolved.weight === null || resolved.weight === undefined) {
                 errors.push({ row, field: "weight", message: "Peso é obrigatório." });
-            } else if (!(resolved.weight > 0)) {
-                errors.push({ row, field: "weight", message: "Peso deve ser maior que zero." });
+            } else if (!Number.isFinite(resolved.weight) || !(resolved.weight > 0)) {
+                errors.push({
+                    row,
+                    field: "weight",
+                    message: "Peso deve ser um número finito maior que zero.",
+                });
             }
         } else {
             resolved.weight = resolved.weight ?? 1;
         }
 
-        if (resolved.descriptor_code) {
-            const found = codeIndex.get(resolved.descriptor_code.toLowerCase().trim());
-            if (!found) {
+        if (
+            resolved.descriptor_id !== null &&
+            (!Number.isInteger(resolved.descriptor_id) || resolved.descriptor_id <= 0)
+        ) {
+            errors.push({
+                row,
+                field: "descriptor_id",
+                message: "Descritor deve ser uma opção válida.",
+            });
+        }
+
+        if (resolved.descriptor_code && resolved.descriptor_id === null) {
+            const found = codeIndex.get(normalizeDescriptorCode(resolved.descriptor_code));
+            if (found === null) {
+                errors.push({
+                    row,
+                    field: "descriptor_code",
+                    message: `Mais de um descritor usa o código "${resolved.descriptor_code.trim()}". Selecione o descritor manualmente.`,
+                });
+            } else if (!found) {
                 errors.push({
                     row,
                     field: "descriptor_code",
@@ -321,7 +376,7 @@ export function validateAndResolve(
 
         drafts.push(resolved);
 
-        const rowHasError = errors.some((e) => e.row === row);
+        const rowHasError = errors.length > errorCountBeforeRow;
         if (!rowHasError && resolved.skill_level && resolved.correct_option && resolved.weight !== null) {
             items.push({
                 ...(resolved.display_order !== null ? { display_order: resolved.display_order } : {}),
@@ -329,8 +384,7 @@ export function validateAndResolve(
                 skill_level: resolved.skill_level,
                 weight: resolved.weight,
                 correct_option: resolved.correct_option,
-                assessment_id: assessmentId,
-                descriptor_id: resolved.descriptor_id,
+                ...(resolved.descriptor_id !== null ? { descriptor_id: resolved.descriptor_id } : {}),
             });
         }
     });

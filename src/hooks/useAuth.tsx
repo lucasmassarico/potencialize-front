@@ -1,4 +1,3 @@
-// src/hooks/useAuth.tsx
 import React, {
     createContext,
     useCallback,
@@ -7,149 +6,179 @@ import React, {
     useMemo,
     useState,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+
 import * as AuthAPI from "../api/auth";
+import { decodeJwt } from "../lib/jwt";
 import {
+    clearTokens,
+    getRefreshToken,
     setAccessToken,
     setRefreshToken,
-    getRefreshToken,
-    clearTokens,
+    subscribeToSessionClear,
 } from "../lib/tokenStorage";
-import type { LoginBody, LoginResponse, Role } from "../types/auth";
-import { decodeJwt } from "../lib/jwt";
-import { readCookie } from "../lib/csrf";
+import type { AuthUser, LoginBody } from "../types/auth";
+import { normalizeAuthMode } from "../types/auth";
+import {
+    clearAuthenticatedCache,
+    completeRemoteLogout,
+    isBearerLoginResponse,
+    isBearerRefreshResponse,
+    isRole,
+    parseAuthUser,
+} from "./authSession";
 
-interface UserInfo {
-    role: Role;
-    teacher_id?: number;
-}
+const AUTH_MODE = normalizeAuthMode(import.meta.env.VITE_AUTH_MODE);
 
 interface AuthContextValue {
-    user: UserInfo | null;
+    user: AuthUser | null;
     loading: boolean;
     login: (payload: LoginBody) => Promise<void>;
     logout: () => Promise<void>;
 }
 
+interface JwtIdentityClaims {
+    role?: unknown;
+    sub?: unknown;
+    teacher_id?: unknown;
+}
+
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function extractTeacherId(
-    role: Role | undefined,
-    sub: unknown
-): number | undefined {
-    if (role !== "teacher") return undefined;
-    const n =
-        typeof sub === "number"
-            ? sub
-            : typeof sub === "string"
-            ? parseInt(sub, 10)
-            : NaN;
-    return Number.isFinite(n) ? n : undefined;
+function positiveInteger(value: unknown): number | undefined {
+    const parsed =
+        typeof value === "number"
+            ? value
+            : typeof value === "string" && value.trim() !== ""
+            ? Number(value)
+            : Number.NaN;
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function userFromAccessToken(token: string): AuthUser | null {
+    const claims = decodeJwt<JwtIdentityClaims>(token);
+    if (!claims || !isRole(claims.role)) return null;
+
+    const teacherId =
+        positiveInteger(claims.teacher_id) ?? positiveInteger(claims.sub);
+    return teacherId === undefined
+        ? { role: claims.role }
+        : { role: claims.role, teacher_id: teacherId };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<UserInfo | null>(null);
+    const queryClient = useQueryClient();
+    const [user, setUser] = useState<AuthUser | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Boot: tenta refresh se houver refresh_token persistido
+    const replaceSessionUser = useCallback(
+        (nextUser: AuthUser | null) => {
+            clearAuthenticatedCache(queryClient);
+            setUser(nextUser);
+        },
+        [queryClient]
+    );
+
+    useEffect(
+        () =>
+            subscribeToSessionClear(() => {
+                replaceSessionUser(null);
+            }),
+        [replaceSessionUser]
+    );
+
     useEffect(() => {
-        (async () => {
+        let active = true;
+
+        async function restoreSession() {
             try {
-                const MODE =
-                    (import.meta.env.VITE_AUTH_MODE as "bearer" | "cookie") ||
-                    "cookie";
-                if (MODE === "cookie") {
-                    // Em cookie-mode tentamos SEMPRE, pois não temos como "ver" HttpOnly via JS
-                    // Só tenta se há indício do refresh (csrf_refresh_token visível no JS)
-                    const hasRefreshArtifcats =
-                        !!readCookie("csrf_refresh_token");
-                    if (!hasRefreshArtifcats) {
-                        return;
+                if (AUTH_MODE === "cookie") {
+                    // /me usa apenas o cookie HttpOnly. Se o access expirou, o
+                    // interceptor renova o cookie e repete esta requisicao.
+                    const response = await AuthAPI.me();
+                    const restoredUser = parseAuthUser(response);
+                    if (!restoredUser) {
+                        throw new Error("Resposta de sessao invalida");
                     }
-                    const { access_token } = await AuthAPI.refresh();
-                    if (access_token) {
-                        setAccessToken(access_token);
-                        const claims = decodeJwt<{
-                            role?: Role;
-                            sub?: string | number;
-                            teacher_id?: number;
-                        }>(access_token);
-                        if (claims?.role) {
-                            setUser({
-                                role: claims.role,
-                                teacher_id:
-                                    claims.teacher_id ??
-                                    extractTeacherId(claims.role, claims.sub),
-                            });
-                        } else {
-                            // Fallback mínimo: mantém usuário genérico autenticado (se prefrir, chame /auth/me)
-                            setUser({ role: "teacher" });
-                        }
-                    }
-                } else if (getRefreshToken()) {
-                    // bearer-mode: só tenta se temos refresh salvo.
-                    const { access_token } = await AuthAPI.refresh();
-                    setAccessToken(access_token);
-                    const claims = decodeJwt<{
-                        role?: Role;
-                        sub?: string | number;
-                        teacher_id?: number;
-                    }>(access_token);
-                    if (claims?.role)
-                        setUser({
-                            role: claims.role,
-                            teacher_id:
-                                claims.teacher_id ??
-                                extractTeacherId(claims.role, claims.sub),
-                        });
+
+                    clearTokens({ notify: false });
+                    if (active) replaceSessionUser(restoredUser);
+                    return;
                 }
+
+                if (!getRefreshToken("bearer")) return;
+
+                const response = await AuthAPI.refresh("bearer");
+                if (!isBearerRefreshResponse(response)) {
+                    throw new Error("Resposta de refresh invalida");
+                }
+
+                const restoredUser = userFromAccessToken(
+                    response.access_token
+                );
+                if (!restoredUser) {
+                    throw new Error("Token de acesso invalido");
+                }
+
+                setAccessToken(response.access_token);
+                if (active) replaceSessionUser(restoredUser);
             } catch {
-                clearTokens();
+                clearTokens({ notify: false });
+                if (active) replaceSessionUser(null);
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
-        })();
-    }, []);
-
-    const doLogin = useCallback(async (payload: LoginBody) => {
-        const data: LoginResponse = await AuthAPI.login(payload);
-        setAccessToken(data.access_token);
-        setRefreshToken(data.refresh_token);
-        const claims = decodeJwt<{
-            role?: Role;
-            sub?: string | number;
-            teacher_id?: number;
-        }>(data.access_token);
-        setUser({
-            role: data.role,
-            teacher_id:
-                data.teacher_id ??
-                claims?.teacher_id ??
-                extractTeacherId(data.role, claims?.sub),
-        });
-    }, []);
-
-    const doLogout = useCallback(async () => {
-        const MODE =
-            (import.meta.env.VITE_AUTH_MODE as "bearer" | "cookie") || "cookie";
-        try {
-            if (MODE === "cookie") {
-                // Em cookie-mode só chamamos se houver artefato visível
-                if (readCookie("csrf_refresh_token")) {
-                    await AuthAPI.logout();
-                }
-            } else {
-                // Em bearer-mode, só chamamos se houver refresh salvo
-                if (getRefreshToken()) {
-                    await AuthAPI.logoutRefresh();
-                }
-            }
-        } catch {
-            // logout errors are intentionally ignored
         }
 
-        clearTokens();
-        setUser(null);
-    }, []);
+        void restoreSession();
+        return () => {
+            active = false;
+        };
+    }, [replaceSessionUser]);
+
+    const doLogin = useCallback(
+        async (payload: LoginBody) => {
+            const response = await AuthAPI.login(payload, AUTH_MODE);
+
+            if (AUTH_MODE === "cookie") {
+                const nextUser = parseAuthUser(response);
+                if (!nextUser) {
+                    throw new Error("Resposta de login invalida");
+                }
+
+                clearTokens({ notify: false });
+                replaceSessionUser(nextUser);
+                return;
+            }
+
+            if (!isBearerLoginResponse(response)) {
+                throw new Error("Resposta de login bearer invalida");
+            }
+
+            const nextUser = parseAuthUser(response);
+            if (!nextUser) {
+                throw new Error("Identidade de login invalida");
+            }
+
+            clearTokens({ notify: false });
+            setAccessToken(response.access_token);
+            setRefreshToken(response.refresh_token, "bearer");
+            replaceSessionUser(nextUser);
+        },
+        [replaceSessionUser]
+    );
+
+    const doLogout = useCallback(
+        () =>
+            completeRemoteLogout(
+                () => AuthAPI.logout(AUTH_MODE),
+                () => {
+                    clearTokens({ notify: false });
+                    replaceSessionUser(null);
+                },
+            ),
+        [replaceSessionUser],
+    );
 
     const value = useMemo(
         () => ({ user, loading, login: doLogin, logout: doLogout }),
@@ -163,7 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
-    const ctx = useContext(AuthContext);
-    if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-    return ctx;
+    const context = useContext(AuthContext);
+    if (!context) throw new Error("useAuth must be used within AuthProvider");
+    return context;
 }

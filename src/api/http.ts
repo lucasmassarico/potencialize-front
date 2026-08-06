@@ -4,177 +4,182 @@ import type {
     AxiosInstance,
     InternalAxiosRequestConfig,
 } from "axios";
+
+import { getCsrfToken } from "../lib/csrf";
 import {
+    clearTokens,
     getAccessToken,
     getRefreshToken,
     setAccessToken,
-    clearTokens,
 } from "../lib/tokenStorage";
-import { getCsrfToken } from "../lib/csrf";
+import { normalizeAuthMode } from "../types/auth";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL as string; // ex.: http://127.0.0.1:5000/api/v1
-const AUTH_MODE =
-    (import.meta.env.VITE_AUTH_MODE as "bearer" | "cookie") || "bearer";
+const API_BASE = import.meta.env.VITE_API_BASE_URL as string;
+const AUTH_MODE = normalizeAuthMode(import.meta.env.VITE_AUTH_MODE);
 
 const api: AxiosInstance = axios.create({
     baseURL: API_BASE,
     withCredentials: AUTH_MODE === "cookie",
 });
 
-let isRefreshing = false;
-let pendingQueue: Array<{
-    resolve: (token: string) => void;
+interface RetryableRequestConfig extends InternalAxiosRequestConfig {
+    _retry?: boolean;
+}
+
+interface PendingRequest {
+    resolve: (accessToken: string | null) => void;
     reject: (reason?: unknown) => void;
-}> = [];
-
-function onRefreshed(token: string) {
-    pendingQueue.forEach((p) => p.resolve(token));
-    pendingQueue = [];
-}
-function onRefreshFailed(err: unknown) {
-    pendingQueue.forEach((p) => p.reject(err));
-    pendingQueue = [];
 }
 
-api.interceptors.request.use(
-    (config: InternalAxiosRequestConfig & { _retry?: boolean }) => {
-        // Bearer header (se modo bearer)
-        if (AUTH_MODE === "bearer") {
-            const access = getAccessToken();
-            if (access) {
-                config.headers = config.headers || {};
-                config.headers["Authorization"] = `Bearer ${access}`;
-            }
-        }
+let isRefreshing = false;
+let pendingQueue: PendingRequest[] = [];
 
-        // CSRF (se cookie-mode e método mutável)
-        if (AUTH_MODE === "cookie") {
-            const method = (config.method || "get").toUpperCase();
-            if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-                // descobrir a pathname da request atual (pode ser relativa)
-                const urlObj = new URL((config as InternalAxiosRequestConfig & { url?: string }).url ?? "", API_BASE);
-                const pathname = urlObj.pathname.replace(/\/+$/, ""); // remove barra final
-                const needsRefreshCsrf =
-                    pathname.endsWith("/auth/refresh") ||
-                    pathname.endsWith("/auth/logout-refresh"); // inclua outras rotas se usarem refresh
+function finishPendingRequests(accessToken: string | null) {
+    pendingQueue.forEach((pending) => pending.resolve(accessToken));
+    pendingQueue = [];
+}
 
-                const csrf = getCsrfToken(
-                    needsRefreshCsrf ? "refresh" : "access"
-                );
-                if (csrf) {
-                    config.headers = config.headers || {};
-                    config.headers["X-CSRF-TOKEN"] = csrf;
-                }
-            }
-        }
+function failPendingRequests(error: unknown) {
+    pendingQueue.forEach((pending) => pending.reject(error));
+    pendingQueue = [];
+}
 
-        return config;
+function requestPathname(url: string | undefined): string {
+    try {
+        return new URL(url ?? "", API_BASE || "http://localhost").pathname.replace(
+            /\/+$/,
+            ""
+        );
+    } catch {
+        return url?.split("?")[0]?.replace(/\/+$/, "") ?? "";
     }
-);
+}
+
+function isAuthenticationEntryPoint(url: string | undefined): boolean {
+    const pathname = requestPathname(url);
+    return [
+        "/auth/login",
+        "/auth/login-bearer",
+        "/auth/refresh",
+        "/auth/refresh-bearer",
+        "/auth/logout",
+        "/auth/logout-refresh",
+    ].some((endpoint) => pathname.endsWith(endpoint));
+}
+
+function setBearerHeader(
+    config: RetryableRequestConfig,
+    accessToken: string
+): void {
+    config.headers = config.headers || {};
+    config.headers["Authorization"] = `Bearer ${accessToken}`;
+}
+
+async function renewSession(): Promise<string | null> {
+    if (AUTH_MODE === "bearer") {
+        const refreshToken = getRefreshToken("bearer");
+        if (!refreshToken) {
+            throw new Error("Refresh token indisponivel");
+        }
+
+        const { data } = await axios.post<{ access_token?: unknown }>(
+            `${API_BASE}/auth/refresh-bearer`,
+            {},
+            { headers: { Authorization: `Bearer ${refreshToken}` } }
+        );
+        if (typeof data.access_token !== "string" || !data.access_token) {
+            throw new Error("Resposta de refresh invalida");
+        }
+
+        setAccessToken(data.access_token);
+        return data.access_token;
+    }
+
+    const csrf = getCsrfToken("refresh");
+    await axios.post(
+        `${API_BASE}/auth/refresh`,
+        {},
+        {
+            withCredentials: true,
+            headers: csrf ? { "X-CSRF-TOKEN": csrf } : undefined,
+        }
+    );
+    return null;
+}
+
+api.interceptors.request.use((config: RetryableRequestConfig) => {
+    if (AUTH_MODE === "bearer") {
+        const accessToken = getAccessToken();
+        if (accessToken && !config.headers?.["Authorization"]) {
+            setBearerHeader(config, accessToken);
+        }
+    }
+
+    if (AUTH_MODE === "cookie") {
+        const method = (config.method || "get").toUpperCase();
+        if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+            const pathname = requestPathname(config.url);
+            const usesRefreshToken =
+                pathname.endsWith("/auth/refresh") ||
+                pathname.endsWith("/auth/logout-refresh");
+            const csrf = getCsrfToken(
+                usesRefreshToken ? "refresh" : "access"
+            );
+            if (csrf) {
+                config.headers = config.headers || {};
+                config.headers["X-CSRF-TOKEN"] = csrf;
+            }
+        }
+    }
+
+    return config;
+});
 
 api.interceptors.response.use(
-    (res) => res,
-    async (error: AxiosError & { config: InternalAxiosRequestConfig & { _retry?: boolean } }) => {
-        const original = error.config;
-        const status = error.response?.status;
-
-        if (status === 401 && !original?._retry) {
-            original._retry = true;
-
-            if (AUTH_MODE === "bearer") {
-                const refresh = getRefreshToken();
-                if (!refresh) {
-                    clearTokens();
-                    return Promise.reject(error);
-                }
-                if (isRefreshing) {
-                    return new Promise((resolve, reject) => {
-                        pendingQueue.push({
-                            resolve: (token: string) => {
-                                original.headers = original.headers || {};
-                                original.headers[
-                                    "Authorization"
-                                ] = `Bearer ${token}`;
-                                resolve(api(original));
-                            },
-                            reject,
-                        });
-                    });
-                }
-
-                isRefreshing = true;
-                try {
-                    const { data } = await axios.post(
-                        `${API_BASE}/auth/refresh`,
-                        {},
-                        { headers: { Authorization: `Bearer ${refresh}` } } // bearer-mode
-                    );
-                    const newAccess = (data as { access_token: string })
-                        .access_token;
-                    setAccessToken(newAccess);
-                    isRefreshing = false;
-                    onRefreshed(newAccess);
-
-                    if (AUTH_MODE === "bearer") {
-                        original.headers = original.headers || {};
-                        original.headers[
-                            "Authorization"
-                        ] = `Bearer ${newAccess}`;
-                    }
-                    return api(original);
-                } catch (e) {
-                    isRefreshing = false;
-                    onRefreshFailed(e);
-                    clearTokens();
-                    return Promise.reject(e);
-                }
-            }
-
-            // COOKIE-MODE
-            if (isRefreshing) {
-                return new Promise((resolve, reject) => {
-                    pendingQueue.push({
-                        resolve: (token: string) => {
-                            original.headers = original.headers || {};
-                            original.headers[
-                                "Authorization"
-                            ] = `Bearer ${token}`;
-                            resolve(api(original));
-                        },
-                        reject,
-                    });
-                });
-            }
-
-            isRefreshing = true;
-            try {
-                const csrf = getCsrfToken("refresh");
-                const { data } = await axios.post(
-                    `${API_BASE}/auth/refresh`,
-                    {},
-                    {
-                        withCredentials: true,
-                        headers: csrf ? { "X-CSRF-TOKEN": csrf } : undefined,
-                    }
-                );
-                const newAccess = (data as { access_token: string })
-                    .access_token;
-                setAccessToken(newAccess);
-                isRefreshing = false;
-                onRefreshed(newAccess);
-
-                original.headers = original.headers || {};
-                original.headers["Authorization"] = `Bearer ${newAccess}`;
-                return api(original);
-            } catch (e) {
-                isRefreshing = false;
-                onRefreshFailed(e);
-                clearTokens();
-                return Promise.reject(e);
-            }
+    (response) => response,
+    async (error: AxiosError) => {
+        const original = error.config as RetryableRequestConfig | undefined;
+        if (
+            error.response?.status !== 401 ||
+            !original ||
+            original._retry ||
+            isAuthenticationEntryPoint(original.url)
+        ) {
+            return Promise.reject(error);
         }
 
-        return Promise.reject(error);
+        original._retry = true;
+
+        if (isRefreshing) {
+            return new Promise((resolve, reject) => {
+                pendingQueue.push({
+                    resolve: (accessToken) => {
+                        if (AUTH_MODE === "bearer" && accessToken) {
+                            setBearerHeader(original, accessToken);
+                        }
+                        resolve(api(original));
+                    },
+                    reject,
+                });
+            });
+        }
+
+        isRefreshing = true;
+        try {
+            const accessToken = await renewSession();
+            if (AUTH_MODE === "bearer" && accessToken) {
+                setBearerHeader(original, accessToken);
+            }
+
+            isRefreshing = false;
+            finishPendingRequests(accessToken);
+            return api(original);
+        } catch (refreshError) {
+            isRefreshing = false;
+            failPendingRequests(refreshError);
+            clearTokens();
+            return Promise.reject(refreshError);
+        }
     }
 );
 

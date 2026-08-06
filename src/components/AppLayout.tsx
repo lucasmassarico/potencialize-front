@@ -14,6 +14,8 @@ import {
     ListItemText,
     Divider,
     Button,
+    Alert,
+    Snackbar,
     useTheme,
     useMediaQuery,
 } from "@mui/material";
@@ -32,11 +34,26 @@ const collapsedWidth = 72;
 export default function AppLayout() {
     const { logout, user } = useAuth();
     const [open, setOpen] = React.useState(true);
+    const [logoutBusy, setLogoutBusy] = React.useState(false);
+    const [logoutError, setLogoutError] = React.useState(false);
     const nav = useNavigate();
     const { pathname } = useLocation();
 
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+    const handleLogout = async () => {
+        setLogoutBusy(true);
+        setLogoutError(false);
+        try {
+            await logout();
+            nav("/login");
+        } catch {
+            setLogoutError(true);
+        } finally {
+            setLogoutBusy(false);
+        }
+    };
 
     const items = [
         { label: "Dashboard", icon: <DashboardIcon />, to: "/" },
@@ -74,9 +91,10 @@ export default function AppLayout() {
                     <Button
                         color="inherit"
                         startIcon={<LogoutIcon />}
-                        onClick={() => logout().then(() => nav("/login"))}
+                        disabled={logoutBusy}
+                        onClick={() => void handleLogout()}
                     >
-                        Sair
+                        {logoutBusy ? "Saindoâ€¦" : "Sair"}
                     </Button>
                 </Toolbar>
             </AppBar>
@@ -151,6 +169,20 @@ export default function AppLayout() {
                 <Toolbar />
                 <Outlet />
             </Box>
+
+            <Snackbar
+                open={logoutError}
+                autoHideDuration={6000}
+                onClose={() => setLogoutError(false)}
+            >
+                <Alert
+                    severity="error"
+                    variant="filled"
+                    onClose={() => setLogoutError(false)}
+                >
+                    NÃ£o foi possÃ­vel encerrar a sessÃ£o. Tente novamente.
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }

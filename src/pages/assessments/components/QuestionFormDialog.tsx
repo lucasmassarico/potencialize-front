@@ -21,7 +21,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { QuestionCreate, QuestionOut, SkillLevel, Option } from "../../../types/questions";
+import type { QuestionCreateInput, QuestionOut, SkillLevel, Option } from "../../../types/questions";
 import type { DescriptorOut } from "../../../types/descriptors";
 import { createQuestion, updateQuestion } from "../../../api/questions";
 import { getAssessment } from "../../../api/assessments";
@@ -57,6 +57,51 @@ type Schema = typeof schema;
 type FormInput = z.input<Schema>; // antes da validação/coerção
 type FormOutput = z.output<Schema>; // depois da validação (o que o Zod entrega)
 
+interface QuestionFormPayloadOptions {
+    assessmentId: number;
+    descriptorId: number | null;
+    isBySkill: boolean;
+    isEdit: boolean;
+    isPerQuestion: boolean;
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function findSelectedDescriptor(
+    descriptorId: number | null,
+    descriptors: readonly DescriptorOut[] | undefined,
+): DescriptorOut | null {
+    if (descriptorId == null) return null;
+    return descriptors?.find((item) => item.id === descriptorId) ?? null;
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function buildQuestionFormPayload(
+    values: FormOutput,
+    {
+        assessmentId,
+        descriptorId,
+        isBySkill,
+        isEdit,
+        isPerQuestion,
+    }: QuestionFormPayloadOptions,
+): QuestionCreateInput {
+    return {
+        text: values.text,
+        skill_level: isBySkill ? values.skill_level : "basico",
+        weight: isPerQuestion ? values.weight : 1,
+        correct_option: values.correct_option,
+        assessment_id: assessmentId,
+        ...(descriptorId != null
+            ? { descriptor_id: descriptorId }
+            : isEdit
+              ? { descriptor_id: null }
+              : {}),
+        ...(values.display_order !== undefined
+            ? { display_order: values.display_order }
+            : {}),
+    };
+}
+
 export default function QuestionFormDialog({ open, initial, assessmentId, onClose }: Props) {
     const isEdit = !!initial;
 
@@ -70,8 +115,17 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
     const isPerQuestion = assess?.weight_mode === "per_question";
     const isBySkill = assess?.weight_mode === "by_skill";
 
-    const { data: allDescriptors } = useAllDescriptors();
-    const [descriptor, setDescriptor] = React.useState<DescriptorOut | null>(null);
+    const {
+        data: allDescriptors,
+        isError: descriptorsError,
+        isFetching: descriptorsFetching,
+        isLoading: descriptorsLoading,
+        refetch: refetchDescriptors,
+    } = useAllDescriptors();
+    const [descriptorId, setDescriptorId] = React.useState<number | null>(
+        () => initial?.descriptor_id ?? null,
+    );
+    const descriptor = findSelectedDescriptor(descriptorId, allDescriptors);
 
     const {
         register,
@@ -103,33 +157,21 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
 
     React.useEffect(() => {
         if (!open) return;
-        const id = initial?.descriptor_id ?? null;
-        if (id == null) {
-            setDescriptor(null);
-            return;
-        }
-        const found = allDescriptors?.find((d) => d.id === id) ?? null;
-        setDescriptor(found);
-    }, [open, initial, allDescriptors]);
+        setDescriptorId(initial?.descriptor_id ?? null);
+    }, [open, initial?.id, initial?.descriptor_id]);
 
     const [errMsg, setErrMsg] = React.useState<string | null>(null);
 
     const onSubmit = handleSubmit(async (values) => {
         setErrMsg(null);
 
-        const weightToSend = isPerQuestion ? values.weight : 1; // Envia o peso quando for "per_question"
-
-        const payload: QuestionCreate = {
-            text: values.text,
-            skill_level: isBySkill ? values.skill_level : "basico", // Envia "basico" quando não for "by_skill"
-            weight: weightToSend,
-            correct_option: values.correct_option,
-            assessment_id: assessmentId,
-            descriptor_id: descriptor?.id ?? null,
-        };
-        if (values.display_order !== undefined) {
-            payload.display_order = values.display_order;
-        }
+        const payload = buildQuestionFormPayload(values, {
+            assessmentId,
+            descriptorId,
+            isBySkill,
+            isEdit,
+            isPerQuestion,
+        });
 
         try {
             if (isEdit) await updateQuestion(initial!.id, payload);
@@ -142,6 +184,17 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
     });
 
     const opt = watch("correct_option");
+    const descriptorUnresolved = descriptorId != null && descriptor == null;
+    const descriptorUnavailable = descriptorUnresolved && descriptorsError;
+    const descriptorLoading =
+        descriptorUnresolved &&
+        !descriptorUnavailable &&
+        (descriptorsLoading || descriptorsFetching);
+    const descriptorMissing =
+        descriptorUnresolved &&
+        !descriptorLoading &&
+        !descriptorUnavailable &&
+        allDescriptors !== undefined;
 
     return (
         <Dialog open={open} onClose={() => onClose(false)} maxWidth="md" fullWidth>
@@ -247,9 +300,40 @@ export default function QuestionFormDialog({ open, initial, assessmentId, onClos
                     <DescriptorsCombo
                         label="Descritor (opcional)"
                         value={descriptor}
-                        onChange={setDescriptor}
+                        onChange={(nextDescriptor) =>
+                            setDescriptorId(nextDescriptor?.id ?? null)
+                        }
                         helperText="Busque por código, título, descrição ou área"
                     />
+
+                    {descriptorLoading && (
+                        <Alert severity="info" role="status">
+                            O descritor atual está sendo carregado e será preservado ao salvar.
+                        </Alert>
+                    )}
+
+                    {descriptorUnavailable && (
+                        <Alert
+                            severity="warning"
+                            action={
+                                <Button
+                                    color="inherit"
+                                    size="small"
+                                    onClick={() => void refetchDescriptors()}
+                                >
+                                    Tentar novamente
+                                </Button>
+                            }
+                        >
+                            Não foi possível carregar o descritor atual. Ele será preservado ao salvar.
+                        </Alert>
+                    )}
+
+                    {descriptorMissing && (
+                        <Alert severity="warning">
+                            O descritor atual não está disponível neste catálogo e será preservado ao salvar.
+                        </Alert>
+                    )}
 
                     {errMsg && <Alert severity="error">{errMsg}</Alert>}
                 </Stack>

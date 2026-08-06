@@ -27,6 +27,11 @@ import QuestionsBulkTable from "./bulk/QuestionsBulkTable";
 import QuestionsBulkUpload from "./bulk/QuestionsBulkUpload";
 import QuestionsBulkPaste from "./bulk/QuestionsBulkPaste";
 import QuestionsBulkErrors from "./bulk/QuestionsBulkErrors";
+import { parseBulkSubmissionError } from "./bulk/bulkApiErrors";
+import {
+    MAX_BULK_IMPORT_ROWS,
+    validateBulkImportRowCount,
+} from "./bulk/bulkImportGuards";
 
 interface Props {
     open: boolean;
@@ -40,6 +45,7 @@ export default function QuestionsBulkDialog({ open, assessmentId, onClose }: Pro
     const [tab, setTab] = React.useState<TabKey>("table");
     const [drafts, setDrafts] = React.useState<BulkRowDraft[]>([]);
     const [submitErr, setSubmitErr] = React.useState<string | null>(null);
+    const [serverErrors, setServerErrors] = React.useState<BulkRowError[]>([]);
     const [submitting, setSubmitting] = React.useState(false);
     const [focusedRow, setFocusedRow] = React.useState<number | null>(null);
 
@@ -50,7 +56,12 @@ export default function QuestionsBulkDialog({ open, assessmentId, onClose }: Pro
         staleTime: 30_000,
     });
 
-    const { data: descriptors, isLoading: loadingDescriptors } = useAllDescriptors();
+    const {
+        data: descriptors,
+        isLoading: loadingDescriptors,
+        isError: descriptorsError,
+        refetch: refetchDescriptors,
+    } = useAllDescriptors();
 
     const weightMode: WeightMode = assess?.weight_mode;
 
@@ -62,14 +73,36 @@ export default function QuestionsBulkDialog({ open, assessmentId, onClose }: Pro
         setTab("table");
         setDrafts([]);
         setSubmitErr(null);
+        setServerErrors([]);
         setSubmitting(false);
         setFocusedRow(null);
     }, [open]);
 
-    const { items, errors } = React.useMemo(() => {
+    const needsDescriptorCatalog = React.useMemo(
+        () => drafts.some((draft) => Boolean(draft.descriptor_code || draft.descriptor_id)),
+        [drafts],
+    );
+
+    const { items, errors: validationErrors } = React.useMemo(() => {
         if (!drafts.length) return { items: [], errors: [] as BulkRowError[] };
+        if (needsDescriptorCatalog && (loadingDescriptors || descriptorsError)) {
+            return { items: [], errors: [] as BulkRowError[] };
+        }
         return validateAndResolve(drafts, assessmentId, { weightMode, descriptors });
-    }, [drafts, assessmentId, weightMode, descriptors]);
+    }, [
+        drafts,
+        assessmentId,
+        weightMode,
+        descriptors,
+        needsDescriptorCatalog,
+        loadingDescriptors,
+        descriptorsError,
+    ]);
+
+    const errors = React.useMemo(
+        () => [...validationErrors, ...serverErrors],
+        [validationErrors, serverErrors],
+    );
 
     const errorsByRow = React.useMemo(() => {
         const m = new Map<number, BulkRowError[]>();
@@ -81,15 +114,46 @@ export default function QuestionsBulkDialog({ open, assessmentId, onClose }: Pro
         return m;
     }, [errors]);
 
-    const canImport = drafts.length > 0 && errors.length === 0 && !submitting;
+    const canImport =
+        drafts.length > 0 &&
+        drafts.length <= MAX_BULK_IMPORT_ROWS &&
+        errors.length === 0 &&
+        !submitting &&
+        !(needsDescriptorCatalog && (loadingDescriptors || descriptorsError));
+
+    const updateDrafts = React.useCallback((next: BulkRowDraft[]) => {
+        setServerErrors([]);
+        setSubmitErr(null);
+        setDrafts(next);
+    }, []);
+
+    const isUntouchedPlaceholder = (draft: BulkRowDraft) =>
+        draft.display_order === null &&
+        draft.text.trim() === "" &&
+        draft.skill_level === null &&
+        draft.weight === null &&
+        draft.correct_option === null &&
+        draft.descriptor_code === null &&
+        draft.descriptor_id === null;
 
     const handleParsedFromImport = (parsed: BulkRowDraft[]) => {
-        setDrafts((prev) => [...prev, ...parsed]);
+        setServerErrors([]);
+        setSubmitErr(null);
+        const base =
+            drafts.length === 1 && isUntouchedPlaceholder(drafts[0]) ? [] : drafts;
+        const next = [...base, ...parsed];
+        const rowCountError = validateBulkImportRowCount(next.length);
+        if (rowCountError) {
+            setSubmitErr(rowCountError);
+            return;
+        }
+        setDrafts(next);
         setTab("table");
     };
 
     const handleImport = async () => {
         setSubmitErr(null);
+        setServerErrors([]);
         if (!items.length) {
             setSubmitErr("Nenhuma questão válida para importar.");
             return;
@@ -99,11 +163,9 @@ export default function QuestionsBulkDialog({ open, assessmentId, onClose }: Pro
             await bulkCreateQuestionsByAssessment(assessmentId, items);
             onClose(true);
         } catch (e: unknown) {
-            const apiMsg =
-                e && typeof e === "object" && "response" in e
-                    ? (e as { response?: { data?: { message?: string } } }).response?.data?.message
-                    : undefined;
-            setSubmitErr(apiMsg ?? (e instanceof Error ? e.message : "Erro na importação."));
+            const parsed = parseBulkSubmissionError(e);
+            setSubmitErr(parsed.message);
+            setServerErrors(parsed.rowErrors);
         } finally {
             setSubmitting(false);
         }
@@ -152,10 +214,32 @@ export default function QuestionsBulkDialog({ open, assessmentId, onClose }: Pro
                         <Alert severity="info">Carregando catálogo de descritores…</Alert>
                     )}
 
+                    {descriptorsError && (
+                        <Alert
+                            severity={needsDescriptorCatalog ? "error" : "warning"}
+                            action={
+                                <Button size="small" onClick={() => void refetchDescriptors()}>
+                                    Tentar novamente
+                                </Button>
+                            }
+                        >
+                            {needsDescriptorCatalog
+                                ? "Não foi possível carregar os descritores usados nas linhas. Tente novamente antes de importar."
+                                : "Não foi possível carregar o catálogo de descritores. Você ainda pode importar questões sem descritor."}
+                        </Alert>
+                    )}
+
+                    {drafts.length > MAX_BULK_IMPORT_ROWS && (
+                        <Alert severity="error">
+                            Esta importação excede o limite de {MAX_BULK_IMPORT_ROWS} questões.
+                            Remova algumas linhas ou divida o conteúdo em lotes menores.
+                        </Alert>
+                    )}
+
                     <Box hidden={tab !== "table"}>
                         <QuestionsBulkTable
                             drafts={drafts}
-                            onChange={setDrafts}
+                            onChange={updateDrafts}
                             weightMode={weightMode}
                             descriptors={descriptors}
                             errorsByRow={errorsByRow}
@@ -185,6 +269,10 @@ export default function QuestionsBulkDialog({ open, assessmentId, onClose }: Pro
                     />
 
                     {submitErr && <Alert severity="error">{submitErr}</Alert>}
+
+                    <Typography variant="caption" color="text.secondary">
+                        Limite de {MAX_BULK_IMPORT_ROWS} questões por importação.
+                    </Typography>
                 </Stack>
             </DialogContent>
 

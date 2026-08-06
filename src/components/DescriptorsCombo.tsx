@@ -1,12 +1,16 @@
-import React from "react";
+import type React from "react";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import {
     Autocomplete,
     Box,
     Chip,
     CircularProgress,
+    IconButton,
     TextField,
+    Tooltip,
     Typography,
 } from "@mui/material";
+
 import { useAllDescriptors } from "../hooks/useDescriptors";
 import type { DescriptorOut } from "../types/descriptors";
 
@@ -20,8 +24,38 @@ interface Props {
     fullWidth?: boolean;
 }
 
-function normalize(s: string) {
-    return s.toLowerCase();
+const MAX_RENDERED_OPTIONS = 50;
+
+function normalize(value: string) {
+    return value
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .toLocaleLowerCase("pt-BR");
+}
+
+// Pure export kept beside the component so its user-visible search behavior can be tested.
+// eslint-disable-next-line react-refresh/only-export-components
+export function filterDescriptorOptions(
+    options: readonly DescriptorOut[],
+    inputValue: string,
+): DescriptorOut[] {
+    const query = normalize(inputValue.trim());
+    if (!query) return options.slice(0, MAX_RENDERED_OPTIONS);
+
+    const tokens = query.split(/\s+/).filter(Boolean);
+    return options
+        .filter((option) => {
+            const haystack = normalize(
+                [
+                    option.code,
+                    option.title,
+                    option.description ?? "",
+                    option.area ?? "",
+                ].join(" "),
+            );
+            return tokens.every((token) => haystack.includes(token));
+        })
+        .slice(0, MAX_RENDERED_OPTIONS);
 }
 
 export default function DescriptorsCombo({
@@ -33,58 +67,77 @@ export default function DescriptorsCombo({
     disabled,
     fullWidth = true,
 }: Props) {
-    const { data, isLoading } = useAllDescriptors();
+    const {
+        data,
+        isError,
+        isFetching,
+        isLoading,
+        refetch,
+    } = useAllDescriptors();
     const options = data ?? [];
-
-    const filterOptions = React.useCallback(
-        (opts: DescriptorOut[], state: { inputValue: string }) => {
-            const q = normalize(state.inputValue.trim());
-            if (!q) return opts.slice(0, 50);
-            const tokens = q.split(/\s+/).filter(Boolean);
-            const matches = opts.filter((o) => {
-                const haystack = normalize(
-                    [o.code, o.title, o.description ?? "", o.area ?? ""].join(" "),
-                );
-                return tokens.every((t) => haystack.includes(t));
-            });
-            return matches.slice(0, 50);
-        },
-        [],
-    );
+    const catalogLoading = isLoading || (isFetching && options.length === 0);
 
     return (
         <Autocomplete
             options={options}
             value={value}
-            onChange={(_, v) => onChange(v)}
-            isOptionEqualToValue={(o, v) => o.id === v.id}
-            getOptionLabel={(o) => `${o.code} — ${o.title}`}
-            filterOptions={filterOptions}
-            loading={isLoading}
+            onChange={(_, nextValue) => onChange(nextValue)}
+            isOptionEqualToValue={(option, selected) => option.id === selected.id}
+            getOptionLabel={(option) => `${option.code} — ${option.title}`}
+            filterOptions={(items, state) =>
+                filterDescriptorOptions(items, state.inputValue)
+            }
+            loading={catalogLoading}
             disabled={disabled}
             fullWidth={fullWidth}
-            noOptionsText={isLoading ? "Carregando…" : "Nenhum descritor"}
-            renderOption={(props, o) => (
-                <Box component="li" {...props} key={o.id} sx={{ display: "block !important", py: 1 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.25 }}>
+            loadingText="Carregando descritores…"
+            noOptionsText={
+                isError
+                    ? "Não foi possível carregar os descritores."
+                    : "Nenhum descritor encontrado."
+            }
+            renderOption={(props, option) => (
+                <Box
+                    component="li"
+                    {...props}
+                    key={option.id}
+                    sx={{ display: "block !important", py: 1 }}
+                >
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            mb: 0.25,
+                        }}
+                    >
                         <Chip
                             size="small"
-                            label={o.code}
+                            label={option.code}
                             sx={{ fontFamily: "monospace", fontWeight: 700 }}
                         />
-                        {o.area && (
-                            <Chip size="small" variant="outlined" label={o.area} />
+                        {option.area && (
+                            <Chip size="small" variant="outlined" label={option.area} />
                         )}
-                        {o.grade_year != null && (
-                            <Chip size="small" variant="outlined" label={`${o.grade_year}º ano`} />
+                        {option.grade_year != null && (
+                            <Chip
+                                size="small"
+                                variant="outlined"
+                                label={`${option.grade_year}º ano`}
+                            />
                         )}
                     </Box>
                     <Typography variant="body2" fontWeight={600} noWrap>
-                        {o.title}
+                        {option.title}
                     </Typography>
-                    {o.description && (
-                        <Typography variant="caption" color="text.secondary" noWrap component="div">
-                            {o.description}
+                    {option.description && (
+                        <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            noWrap
+                            component="div"
+                        >
+                            {option.description}
                         </Typography>
                     )}
                 </Box>
@@ -93,14 +146,31 @@ export default function DescriptorsCombo({
                 <TextField
                     {...params}
                     label={label}
-                    error={error}
-                    helperText={helperText}
+                    error={error || isError}
+                    helperText={
+                        isError
+                            ? "Falha ao carregar os descritores. Tente novamente."
+                            : helperText
+                    }
                     placeholder="Buscar por código, título, área…"
                     InputProps={{
                         ...params.InputProps,
                         endAdornment: (
                             <>
-                                {isLoading ? <CircularProgress size={18} /> : null}
+                                {isFetching ? <CircularProgress size={18} /> : null}
+                                {isError ? (
+                                    <Tooltip title="Tentar carregar os descritores novamente">
+                                        <IconButton
+                                            aria-label="Tentar carregar os descritores novamente"
+                                            edge="end"
+                                            size="small"
+                                            onMouseDown={(event) => event.preventDefault()}
+                                            onClick={() => void refetch()}
+                                        >
+                                            <RefreshIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                ) : null}
                                 {params.InputProps.endAdornment}
                             </>
                         ),

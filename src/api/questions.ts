@@ -1,6 +1,15 @@
 // src/api/questions.ts
 import api from "./http";
-import type { QuestionList, QuestionOut, QuestionCreate, QuestionUpdate, SkillLevel, Option } from "../types/questions";
+import type {
+    BulkQuestionCreate,
+    Option,
+    QuestionCreate,
+    QuestionCreateInput,
+    QuestionList,
+    QuestionOut,
+    QuestionUpdate,
+    SkillLevel,
+} from "../types/questions";
 
 type ListParams = {
     page?: number;
@@ -22,8 +31,18 @@ export async function getQuestion(id: number) {
     return res.data;
 }
 
-export async function createQuestion(payload: QuestionCreate) {
-    const res = await api.post<QuestionOut>("/questions/", payload);
+export function toQuestionCreatePayload(input: QuestionCreateInput): QuestionCreate {
+    const { descriptor_id: descriptorId, display_order: displayOrder, ...requiredFields } = input;
+
+    return {
+        ...requiredFields,
+        ...(descriptorId != null ? { descriptor_id: descriptorId } : {}),
+        ...(displayOrder != null ? { display_order: displayOrder } : {}),
+    };
+}
+
+export async function createQuestion(input: QuestionCreateInput) {
+    const res = await api.post<QuestionOut>("/questions/", toQuestionCreatePayload(input));
     return res.data;
 }
 
@@ -36,8 +55,7 @@ export async function deleteQuestion(id: number) {
     await api.delete(`/questions/${id}`);
 }
 
-export async function bulkCreateQuestionsByAssessment(assessmentId: number, items: QuestionCreate[]) {
-    // usa rota que herda assessment_id do path
+export async function bulkCreateQuestionsByAssessment(assessmentId: number, items: BulkQuestionCreate[]) {
     const res = await api.post(`/questions/bulk/${assessmentId}`, {
         items,
     });

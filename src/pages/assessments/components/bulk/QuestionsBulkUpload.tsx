@@ -6,6 +6,10 @@ import { parseDraftsFromWorkbook, readFileAsArrayBuffer } from "../../../../lib/
 import type { BulkRowDraft, WeightMode } from "../../../../lib/questionsBulk/parse";
 import { downloadTemplate } from "../../../../lib/questionsBulk/template";
 import type { DescriptorOut } from "../../../../types/descriptors";
+import {
+    validateBulkImportFile,
+    validateBulkImportRowCount,
+} from "./bulkImportGuards";
 
 interface Props {
     weightMode: WeightMode;
@@ -23,12 +27,20 @@ export default function QuestionsBulkUpload({ weightMode, descriptors, onParsed 
     const handleFile = React.useCallback(
         async (file: File) => {
             setErrMsg(null);
+
+            const fileError = validateBulkImportFile(file);
+            if (fileError) {
+                setErrMsg(fileError);
+                return;
+            }
+
             setBusy(true);
             try {
                 const buf = await readFileAsArrayBuffer(file);
                 const drafts = await parseDraftsFromWorkbook(buf);
-                if (!drafts.length) {
-                    setErrMsg("Não foi possível ler nenhuma linha do arquivo. Verifique se a planilha tem cabeçalhos e ao menos uma linha de dados.");
+                const rowCountError = validateBulkImportRowCount(drafts.length);
+                if (rowCountError) {
+                    setErrMsg(rowCountError);
                     return;
                 }
                 setLastFileName(file.name);

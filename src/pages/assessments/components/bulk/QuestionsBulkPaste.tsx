@@ -2,6 +2,7 @@ import React from "react";
 import { Alert, Button, Stack, TextField, Typography } from "@mui/material";
 import { parseDraftsFromText } from "../../../../lib/questionsBulk/parse";
 import type { BulkRowDraft } from "../../../../lib/questionsBulk/parse";
+import { validateBulkPastedText } from "./bulkImportGuards";
 
 interface Props {
     onParsed: (drafts: BulkRowDraft[]) => void;
@@ -17,8 +18,9 @@ export default function QuestionsBulkPaste({ onParsed }: Props) {
 
     const handleParse = () => {
         setErrMsg(null);
-        if (!raw.trim()) {
-            setErrMsg("Cole o conteúdo CSV/TSV antes de carregar na tabela.");
+        const contentError = validateBulkPastedText(raw);
+        if (contentError) {
+            setErrMsg(contentError);
             return;
         }
         const drafts = parseDraftsFromText(raw);

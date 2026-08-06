@@ -44,7 +44,7 @@ export default function AssessmentMatrix() {
             setPage(1);
             setPerPage(value);
         },
-        [setPage, setPerPage]
+        [setPage, setPerPage],
     );
 
     const handleGradeClose = React.useCallback(
@@ -52,7 +52,7 @@ export default function AssessmentMatrix() {
             setGradeOpen(false);
             if (changed) void invalidateMatrix();
         },
-        [invalidateMatrix]
+        [invalidateMatrix],
     );
 
     const handleBulkClose = React.useCallback(
@@ -60,7 +60,7 @@ export default function AssessmentMatrix() {
             setBulkOpen(false);
             if (changed) void invalidateMatrix();
         },
-        [invalidateMatrix]
+        [invalidateMatrix],
     );
 
     return (
